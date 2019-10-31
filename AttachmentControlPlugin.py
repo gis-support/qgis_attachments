@@ -24,20 +24,29 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QComboBox, QVBoxLayout, QTableWidgetItem,\
-    QDialog, QPushButton
+    QDialog, QPushButton, QWidget, QTableWidget, QMessageBox
 from qgis.gui import QgsEditorWidgetWrapper, QgsEditorWidgetFactory,\
     QgsEditorConfigWidget, QgsEditorWidgetRegistry, QgsGui
 from PyQt5.QtCore import Qt
 from PyQt5 import uic
+from urllib.parse import urlparse
+import webbrowser
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 import os.path
 
+def validate_url(url):
+    try:
+        parsed = urlparse(url)
+        return all([parsed.scheme, parsed.netloc, parsed.path])
+    except:
+        return False
+
 class AttachmentControlPlugin():
     def __init__(self, iface):
-        self.widget = AttachmentControlWidget('Attachment Control')
+        self.widget = AttachmentControlWidget('Załącznik (AttachmentControl)')
         QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', self.widget)
         iface._WidgetPlugin = self.widget
 
@@ -67,7 +76,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.editor = editor
         self.parent = parent
-        self.wrapperComboBox = None
+        self.wrapperWidget = None
         self.wrapperListWidget = None
         self.wrapperFeature = None
         self.layer = vl
@@ -81,45 +90,80 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         self.populateWidget()
 
     def value(self):
-        cbId = self.wrapperComboBox.currentIndex()
-        if cbId > -1:
-            return self.wrapperComboBox.itemData(
-                self.wrapperCombobox.currentIndex()
-            )
-        else:
-            return 0
+        try:
+            return self.wrapperWidget.tableWidget.selectedIndexes()[0].data()
+        except IndexError:
+            return u'Brak załącznika'
     
     def setValue(self, value):
-        self.wrapperComboBox.setCurrentIndex(
-            self.wrapperComboBox.findData(value)
-        )
+        pass
 
     def createWidget(self, parent):
-        self.wrapperComboBox = QComboBox(parent)
-        return self.wrapperComboBox
+        self.wrapperWidget = AttachmentControlBase()
+        return self.wrapperWidget
 
     def populateWidget(self, editor=None):
         pass
 
+class AttachmentControlBase(QWidget):
+    def __init__(self):
+        super(AttachmentControlBase, self).__init__()
+        ui_path = os.path.join(os.path.dirname(__file__), 'gui/ui_attachmentcontrolpluginbase.ui')
+        uic.loadUi(ui_path, self)
+        self.dialog = None
+        self.btnAdd.clicked.connect(self.initAttachmentDialog)
+        self.btnDelete.clicked.connect(self.dialogDeleteUrl)
+        self.tableWidget.setColumnCount(1)
+        self.tableWidget.doubleClicked.connect(self.openUrl)
+        self.tableWidget.setHorizontalHeaderLabels(['Adres URL'])
+        self.settings = QSettings()
+        
+        self.urls = []
+
+    def initAttachmentDialog(self):
+        self.dialog = AttachmentControlAddUrlDialog()
+        self.dialog.show()
+        self.dialog.btnDialogApply.clicked.connect(self.dialogAddUrl)
+        self.dialog.btnDialogDecline.clicked.connect(self.dialog.close)
+    
+    def dialogAddUrl(self):
+        url = self.dialog.lnDialogUrl.text()
+        url_item = QTableWidgetItem(self.dialog.lnDialogUrl.text())
+        if not validate_url(url):
+            self.dialog.close()
+            QMessageBox.critical(
+                None,
+                'Załączniki',
+                'Podany adres URL jest niepoprawny'
+            )
+            return
+        self.urls.append(url)
+        maxRow = self.tableWidget.rowCount()
+        self.tableWidget.insertRow(maxRow)
+        self.tableWidget.setItem(maxRow, 0, url_item)
+
+    def dialogDeleteUrl(self):
+        try:
+            selected = self.tableWidget.selectedIndexes()[0].row()
+            self.tableWidget.removeRow(selected)
+        except IndexError:
+            QMessageBox.critical(
+                None,
+                'Załaczniki',
+                'Nie wybrano obiektu do usunięcia'
+            )
+            return
+
+    def openUrl(self):
+        selectedUrl = self.tableWidget.selectedIndexes()[0].data()
+        webbrowser.open(selectedUrl)
+
+        
 class AttachmentControlWidgetDialog(QgsEditorConfigWidget):
     def __init__(self, vl, fieldIdx, parent):
         super(AttachmentControlWidgetDialog, self).__init__(vl, fieldIdx, parent)
-        ui_path = os.path.join(os.path.dirname(__file__), 'gui/ui_attachmentcontrolplugin.ui')
+        ui_path = os.path.join(os.path.dirname(__file__), 'gui/ui_attachmentcontrolpluginconfig.ui')
         uic.loadUi(ui_path, self)
-        self.dialog = None
-        self.parent = parent
-        self.btnAdd.clicked.connect(self.addAttachment)
-        self.btnDelete.clicked.connect(self.deleteAttachment)
-        self.tableWidget.setColumnCount(1)
-        self.tableWidget.horizontalHeader().setMinimumSectionSize(511)
-        self.tableWidget.setHorizontalHeaderLabels(['Adres URL'])
-
-    def addAttachment(self):
-        self.dialog = AttachmentControlAddUrlDialog(self.parent)
-        self.dialog.show()
-
-    def deleteAttachment(self):
-        pass
 
     def config(self):
         return {}
@@ -128,20 +172,11 @@ class AttachmentControlWidgetDialog(QgsEditorConfigWidget):
         pass
 
 class AttachmentControlAddUrlDialog(QDialog):
-    def __init__(self, parent):
-        super(AttachmentControlAddUrlDialog, self).__init__(parent)
+    def __init__(self):
+        super(AttachmentControlAddUrlDialog, self).__init__()
         ui_path = os.path.join(os.path.dirname(__file__), 'gui/ui_addattachmentdialog.ui')
         uic.loadUi(ui_path, self)
-        self.parent = parent
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.btnDialogApply.clicked.connect(self.addUrl)
-        self.btnDialogDecline.clicked.connect(self.close)
-
-    def addUrl():
-        url = lnDialogUrl.text()
-        # maxRow = self.parent.tableWidget.rowCount()
-        # self.tableWidget.insertRow(maxRow)
-        # self.tableWidget.setItem(maxRow, 0, url)
 
     def close(self):
         self.reject()
