@@ -117,8 +117,9 @@ class AttachmentControlBase(QWidget):
         self.tableWidget.doubleClicked.connect(self.openUrl)
         self.tableWidget.setHorizontalHeaderLabels(['Adres URL'])
         self.settings = QSettings()
-        
-        self.urls = []
+        urls = self.settings.value('AttachmentControl/urls')
+        if urls:
+            self.loadUrls(urls)
 
     def initAttachmentDialog(self):
         self.dialog = AttachmentControlAddUrlDialog()
@@ -137,14 +138,23 @@ class AttachmentControlBase(QWidget):
                 'Podany adres URL jest niepoprawny'
             )
             return
-        self.urls.append(url)
+        current_urls = self.settings.value('AttachmentControl/urls')
+        if not current_urls:
+            self.settings.setValue('AttachmentControl/urls', [url])
+        else:
+            current_urls.append(url)
+            self.settings.setValue('AttachmentControl/urls', current_urls)
         maxRow = self.tableWidget.rowCount()
         self.tableWidget.insertRow(maxRow)
         self.tableWidget.setItem(maxRow, 0, url_item)
+        self.dialog.lnDialogUrl.setText('')
 
     def dialogDeleteUrl(self):
         try:
             selected = self.tableWidget.selectedIndexes()[0].row()
+            savedItems = self.settings.value('AttachmentControl/urls')
+            savedItems.pop(selected)
+            self.settings.setValue('AttachmentControl/urls', savedItems)
             self.tableWidget.removeRow(selected)
         except IndexError:
             QMessageBox.critical(
@@ -158,6 +168,12 @@ class AttachmentControlBase(QWidget):
         selectedUrl = self.tableWidget.selectedIndexes()[0].data()
         webbrowser.open(selectedUrl)
 
+    def loadUrls(self, urls):
+        maxRow = len(urls)
+        self.tableWidget.setRowCount(maxRow)
+        for id, url in enumerate(urls):
+            item = QTableWidgetItem(url)
+            self.tableWidget.setItem(id, 0, item)
         
 class AttachmentControlWidgetDialog(QgsEditorConfigWidget):
     def __init__(self, vl, fieldIdx, parent):
