@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QComboBox, QVBoxLayout, QTableWidgetItem,\
-    QDialog, QPushButton, QWidget, QTableWidget, QMessageBox
+    QDialog, QPushButton, QWidget, QTableWidget, QMessageBox, QApplication
 from qgis.gui import QgsEditorWidgetWrapper, QgsEditorWidgetFactory,\
     QgsEditorConfigWidget, QgsEditorWidgetRegistry, QgsGui
 from PyQt5.QtCore import Qt
@@ -114,7 +114,7 @@ class AttachmentControlBase(QWidget):
         self.btnAdd.clicked.connect(self.initAttachmentDialog)
         self.btnDelete.clicked.connect(self.dialogDeleteUrl)
         self.tableWidget.setColumnCount(1)
-        self.tableWidget.doubleClicked.connect(self.openUrl)
+        self.tableWidget.itemClicked.connect(self.openUrl)
         self.tableWidget.setHorizontalHeaderLabels(['Adres URL'])
         self.settings = QSettings()
         urls = self.settings.value('AttachmentControl/urls')
@@ -139,7 +139,9 @@ class AttachmentControlBase(QWidget):
             )
             return
         current_urls = self.settings.value('AttachmentControl/urls')
-        if not current_urls:
+        if url in current_urls:
+            return
+        elif not current_urls:
             self.settings.setValue('AttachmentControl/urls', [url])
         else:
             current_urls.append(url)
@@ -164,9 +166,11 @@ class AttachmentControlBase(QWidget):
             )
             return
 
-    def openUrl(self):
-        selectedUrl = self.tableWidget.selectedIndexes()[0].data()
-        webbrowser.open(selectedUrl)
+    def openUrl(self, item):
+        pressed = QApplication.keyboardModifiers()
+        if pressed == Qt.ControlModifier:
+            selectedUrl = item.text()
+            webbrowser.open(selectedUrl)
 
     def loadUrls(self, urls):
         maxRow = len(urls)
