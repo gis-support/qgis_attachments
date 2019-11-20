@@ -49,12 +49,14 @@ class AttachmentControlPlugin():
         self.widget = AttachmentControlWidget('Załącznik (AttachmentControl)')
         QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', self.widget)
         iface._WidgetPlugin = self.widget
+        self.settings = QSettings()
+        self.settings.setValue('AttachmentControl/urls', [])
 
     def initGui(self):
         pass
 
     def unload(self):
-        pass
+        self.settings.setValue('AttachmentControl/urls', None)
 
 class AttachmentControlWidget(QgsEditorWidgetFactory):
     def __init__(self, name):
@@ -67,8 +69,8 @@ class AttachmentControlWidget(QgsEditorWidgetFactory):
         return self.wrapper
 
     def configWidget(self, vl, fieldIdx, parent):
-        self.dialog = AttachmentControlWidgetDialog(vl, fieldIdx, parent)
-        return self.dialog
+        self.config = AttachmentControlWidgetConfig(vl, fieldIdx, parent)
+        return self.config
 
 
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
@@ -141,15 +143,13 @@ class AttachmentControlBase(QWidget):
         current_urls = self.settings.value('AttachmentControl/urls')
         if url in current_urls:
             return
-        elif not current_urls:
-            self.settings.setValue('AttachmentControl/urls', [url])
-        else:
-            current_urls.append(url)
-            self.settings.setValue('AttachmentControl/urls', current_urls)
+        current_urls.append(url)
+        self.settings.setValue('AttachmentControl/urls', current_urls)
         maxRow = self.tableWidget.rowCount()
         self.tableWidget.insertRow(maxRow)
         self.tableWidget.setItem(maxRow, 0, url_item)
         self.dialog.lnDialogUrl.setText('')
+        self.tableWidget.resizeColumnsToContents()
 
     def dialogDeleteUrl(self):
         try:
@@ -179,9 +179,9 @@ class AttachmentControlBase(QWidget):
             item = QTableWidgetItem(url)
             self.tableWidget.setItem(id, 0, item)
         
-class AttachmentControlWidgetDialog(QgsEditorConfigWidget):
+class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
     def __init__(self, vl, fieldIdx, parent):
-        super(AttachmentControlWidgetDialog, self).__init__(vl, fieldIdx, parent)
+        super(AttachmentControlWidgetConfig, self).__init__(vl, fieldIdx, parent)
         ui_path = os.path.join(os.path.dirname(__file__), 'gui/ui_attachmentcontrolpluginconfig.ui')
         uic.loadUi(ui_path, self)
 
@@ -190,7 +190,7 @@ class AttachmentControlWidgetDialog(QgsEditorConfigWidget):
 
     def setConfig(self, config):
         pass
-
+    
 class AttachmentControlAddUrlDialog(QDialog):
     def __init__(self):
         super(AttachmentControlAddUrlDialog, self).__init__()

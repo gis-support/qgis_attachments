@@ -40,6 +40,9 @@
      <attribute name="horizontalHeaderDefaultSectionSize">
       <number>300</number>
      </attribute>
+     <attribute name="verticalHeaderCascadingSectionResizes">
+      <bool>true</bool>
+     </attribute>
     </widget>
    </item>
    <item>
