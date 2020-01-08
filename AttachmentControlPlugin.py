@@ -27,6 +27,7 @@ from qgis.PyQt.QtWidgets import QAction, QComboBox, QVBoxLayout, QTableWidgetIte
     QDialog, QPushButton, QWidget, QTableWidget, QMessageBox, QApplication
 from qgis.gui import QgsEditorWidgetWrapper, QgsEditorWidgetFactory,\
     QgsEditorConfigWidget, QgsEditorWidgetRegistry, QgsGui
+from qgis.core import NULL
 from PyQt5.QtCore import Qt
 from PyQt5 import uic
 from urllib.parse import urlparse
@@ -38,6 +39,7 @@ from .resources import *
 import os.path
 
 def validate_url(url):
+    return True
     try:
         parsed = urlparse(url)
         return all([parsed.scheme, parsed.netloc, parsed.path])
@@ -77,11 +79,11 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def __init__(self, vl, fieldIdx, editor, parent):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.editor = editor
-        self.parent = parent
+        #self.parent = parent
         self.wrapperWidget = None
         self.wrapperListWidget = None
         self.wrapperFeature = None
-        self.layer = vl
+        #self.layer = vl
 
     def valid(self):
         return 1
@@ -89,24 +91,41 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def setFeature(self, feature):
         super(AttachmentControlWidgetWrapper, self).setFeature(feature)
         self.wrapperFeature = feature
-        self.populateWidget()
+        #self.populateWidget()
+        table = self.wrapperWidget.tableWidget
 
     def value(self):
-        try:
-            return self.wrapperWidget.tableWidget.selectedIndexes()[0].data()
-        except IndexError:
-            return u'Brak załącznika'
+        values = []
+        table = self.wrapperWidget.tableWidget
+        for row in range(table.rowCount()):
+            values.append( table.item(row, 0).text() )
+        if values:
+            return ';'.join( values )
+        return NULL
     
-    def setValue(self, value):
-        pass
+    def setValue(self, attribute):
+        table = self.wrapperWidget.tableWidget
+        table.clear()
+        if not attribute:
+            values = []
+        else:
+            values = attribute.split(';')
+        table.setRowCount( len(values) )
+        for row, value in enumerate(values):
+            table.setItem( row, 0, QTableWidgetItem(value) )
+            
 
     def createWidget(self, parent):
         self.wrapperWidget = AttachmentControlBase()
         return self.wrapperWidget
-
+'''
     def populateWidget(self, editor=None):
+        print( 'populate' )
+        print( editor )
+        print( dir(self) )
+        print( self.wrapperFeature )
         pass
-
+'''
 class AttachmentControlBase(QWidget):
     def __init__(self):
         super(AttachmentControlBase, self).__init__()
