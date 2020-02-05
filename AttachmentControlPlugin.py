@@ -30,27 +30,52 @@ from qgis.gui import QgsEditorWidgetWrapper, QgsEditorWidgetFactory,\
 from qgis.core import NULL
 from PyQt5.QtCore import Qt
 from PyQt5 import uic
-from urllib.parse import urlparse
+# from urllib.parse import urlparse
+import os
+import os.path as op
 import webbrowser
+import urllib
+import shutil
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 import os.path
 
-def validate_url(url):
-    return True
-    try:
-        parsed = urlparse(url)
-        return all([parsed.scheme, parsed.netloc, parsed.path])
-    except:
-        return False
+# def validate_url(url):
+#     return True
+#     try:
+#         parsed = urlparse(url)
+#         return all([parsed.scheme, parsed.netloc, parsed.path])
+#     except:
+#         return False
 
+PATH = op.dirname(__file__)
+
+def saveFile(url):
+    try:
+        file_path = op.join(PATH, 'downloads', url[url.rfind('/')+1:])
+        with urllib.request.urlopen(url) as response, open(file_path, 'wb') as file:
+            shutil.copyfileobj(response, file)
+        return True
+    except ValueError:
+        return
+    except urllib.error.HTTPError as e:
+        QMessageBox.critical(
+            None,
+            'Załaczniki',
+            'Podczas pobierania załącznika wystąpił błąd:\n {}'.format(str(e))
+        )
+        return    
+    
 class AttachmentControlPlugin():
     def __init__(self, iface):
         self.widget = AttachmentControlWidget('Załącznik (AttachmentControl)')
         QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', self.widget)
         iface._WidgetPlugin = self.widget
+        downloads_path = op.join(PATH, 'downloads')
+        if not op.exists(downloads_path):
+            os.mkdir(downloads_path)
 
     def initGui(self):
         pass
@@ -177,7 +202,9 @@ class AttachmentControlBase(QWidget):
         if pressed == Qt.ControlModifier:
             if item.data(Qt.UserRole) == 'url':
                 selectedAttachment = item.text()
-                webbrowser.open(selectedAttachment)
+                saved = saveFile(selectedAttachment)
+                if saved:
+                    webbrowser.open(op.join(PATH, 'downloads'))
             else:
                 selectedPath = item.text()
                 last_slash_index = selectedPath.rfind('/')
