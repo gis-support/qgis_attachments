@@ -58,9 +58,7 @@ def saveFile(url):
         with urllib.request.urlopen(url) as response, open(file_path, 'wb') as file:
             shutil.copyfileobj(response, file)
         return True
-    except ValueError:
-        return
-    except urllib.error.HTTPError as e:
+    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as e:
         QMessageBox.critical(
             None,
             'Załaczniki',
