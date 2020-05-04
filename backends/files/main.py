@@ -4,10 +4,14 @@ from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.core import NULL, QgsProject, QgsApplication
+from qgis.utils import iface
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 from pathlib import Path
+import os
+import subprocess
+import sys
 
 class FilesBackend(BackendAbstract):
     """ Przechowuje ścieżki plików w tabeli atrybutów """
@@ -57,6 +61,9 @@ class FilesBackend(BackendAbstract):
                     #Konwersja nieudana, więc zapisujemy pełną ścieżkę
                     _files.append(file_path)
             files = _files
+        else:
+            #Zajęcie się ukośnikami (w zasadzie dotyczy tylko Windows)
+            files = [ str(Path(f)) for f in files ]
         self.model.insertRows(files)
     
     def deleteAttachment(self, parent):
@@ -68,7 +75,41 @@ class FilesBackend(BackendAbstract):
         self.model.removeRow(rows[0])
 
     def openFolder(self, index):
-        print( 'openFolder' )
-    
+        """ Otworzenie katalogu z plikiem """
+        file_path = Path(index.data())
+        file_dir = file_path.parent
+        if not file_dir.exists():
+            #Katalog nie istnieje
+            iface.messageBar().pushCritical('Błąd', f"Katalog '{file_dir}'' nie istnieje.")
+            return
+        if sys.platform == 'win32':
+            #Windows
+            #Konwersja ukośników na backslash
+            subprocess.call(f'explorer /select,"{str(file_path)}"', shell=True)
+        elif sys.platform.startswith('linux'):
+            #Linux
+            subprocess.call(['xdg-open', file_dir])
+        # TODO: MacOS do przetestowania
+        # elif sys.platform == 'darwin':
+        #     subprocess.call(['open', '--', file_path])
+        else:
+            iface.messageBar().pushCritical('Błąd', 'Nie można otworzyć folderu, niewspierany system operacyjny')
+
     def openFile(self, index):
-        print( 'openFile' )
+        """ Otworzenie pliku w domyslnej aplikacji """
+        file_path = Path(index.data())
+        if not file_path.exists():
+            #Plik nie istenieje
+            iface.messageBar().pushCritical('Błąd', f"Plik '{file_path} nie istnieje.")
+            return
+        if sys.platform == 'win32':
+            #Windows
+            os.startfile( file_path )
+        elif sys.platform.startswith('linux'):
+            #Linux
+            subprocess.call(['xdg-open', file_path])
+        # TODO: MacOS do przetestowania
+        # elif sys.platform == 'darwin':
+        #     subprocess.call(['open', '--', file_path])
+        else:
+            iface.messageBar().pushCritical('Błąd', 'Nie można otworzyć pliku, niewspierany system operacyjny')
