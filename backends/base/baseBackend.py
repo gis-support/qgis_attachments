@@ -52,4 +52,6 @@ class BackendAbstract:
         if self.options:
             buttons = OptionButtonsDelegate(self.options)
             table.setItemDelegateForColumn(self.options_column, buttons)
-            table.setColumnWidth(self.options_column, buttons.columnWidth())
+            column_width = buttons.columnWidth()
+            table.setColumnWidth(self.options_column, column_width)
+            table.horizontalHeader().setMinimumSectionSize( column_width )

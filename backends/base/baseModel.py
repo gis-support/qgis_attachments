@@ -1,6 +1,10 @@
 # coding: utf-8
 
-from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex
+from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex, QMimeDatabase
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QApplication, QStyle
+
+mime_db = QMimeDatabase()
 
 class AttachmentItem:
     """ Klasa reprezentująca pojedynczy załącznik na liście """
@@ -39,7 +43,15 @@ class AttachmentsAbstractModel(QAbstractTableModel):
             return
         item = self.items[index.row()]
         if role == Qt.DisplayRole:
+            #Wyświetlany tekst
             return item.value
+        elif role == Qt.DecorationRole:
+            #Systemowa ikona pliku
+            mime = mime_db.mimeTypeForFile( item.value )
+            icon = QIcon.fromTheme( mime.iconName() )
+            if icon.isNull():
+                icon = QApplication.style().standardIcon(QStyle.SP_FileIcon)
+            return icon
         elif role == Qt.UserRole:
             return item
     
