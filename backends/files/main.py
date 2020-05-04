@@ -44,6 +44,14 @@ class FilesBackend(BackendAbstract):
     def setConfig(self, config):
         """Odczyt ustawień i dostosowanie GUI"""
         self.configWidget.cbRelativePaths.setChecked( config.get('relative', False) )
+    
+    def warnings(self, layer, fieldIdx):
+        """ Zwraca dodatkowe informacje o ograniczecniach wskazanego pola """
+        field = layer.fields().field( fieldIdx )
+        warnings = []
+        if field.length()>0:
+            warnings.append( f'Wskazane pole może przechowywać maksymalnie {field.length()} znaków co ogranicza liczbę przechowywanych załączników.' )
+        return warnings
 
     # FORMULARZ
     

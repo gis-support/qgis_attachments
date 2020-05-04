@@ -23,6 +23,9 @@ class BackendAbstract:
     def setConfig(self, config):
         pass
 
+    def warnings(self, layer, fieldIdx):
+        return []
+
     # FORMULARZ
 
     def value(self):
