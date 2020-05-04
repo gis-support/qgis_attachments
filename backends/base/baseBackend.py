@@ -1,12 +1,19 @@
 # coding: utf-8
 
 from qgis.core import NULL
+from qgis_attachments.backends.base.baseDelegates import OptionButtonsDelegate
 
 class BackendAbstract:
     """ Klasa bazowa dla różnych typów sterowników dla załączników """
 
     SEPARATOR = ';'
     DESCRIPTION = ''
+
+    def __init__(self, options=[], options_column=0):
+        #Lista opcji dla załącznika
+        self.options = options
+        #W której kolumnie mają znaleźć się opcje
+        self.options_column = options_column
 
     # KONFIGURACJA
 
@@ -36,3 +43,10 @@ class BackendAbstract:
         values = value.split( self.SEPARATOR )
         #Wypełnienie lisy załączników
         self.model.insertRows(values)
+    
+    def setOptions(self, table):
+        """ Ustawienie dodatkowych opcji dla załączników w podanej kolumnie """
+        if self.options:
+            buttons = OptionButtonsDelegate(self.options)
+            table.setItemDelegateForColumn(self.options_column, buttons)
+            table.setColumnWidth(self.options_column, buttons.columnWidth())

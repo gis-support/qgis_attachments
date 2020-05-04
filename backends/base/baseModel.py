@@ -34,7 +34,7 @@ class AttachmentsAbstractModel(QAbstractTableModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.columns[section]
     
-    def data(self, index, role):
+    def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return
         item = self.items[index.row()]

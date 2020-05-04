@@ -50,6 +50,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         self.widget.btnDelete.clicked.connect( self.deleteAttachment  )
         #Model listy załączników
         self.widget.tblAttachments.setModel( self.backend.model )
+        self.backend.setOptions( self.widget.tblAttachments )
     
     def setEnabled(self, enabled):
         """ Ustawienie aktywności elementów formularza w zależności od trybu edycji """

@@ -3,9 +3,11 @@
 from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
-from qgis.core import NULL, QgsProject
+from qgis.core import NULL, QgsProject, QgsApplication
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
+from qgis_attachments.backends.base.baseDelegates import OptionButton
+from pathlib import Path
 
 class FilesBackend(BackendAbstract):
     """ Przechowuje ścieżki plików w tabeli atrybutów """
@@ -16,8 +18,12 @@ class FilesBackend(BackendAbstract):
     DESCRIPTION = 'Przechowuje ścieżki do plików z dysku lokalnego.'
 
     def __init__(self):
-        #Uwtorzenie modelu dla listy załączników
-        self.model = FilesModel(columns=['Pliki'])
+        super(FilesBackend, self).__init__([
+            OptionButton(QgsApplication.getThemeIcon('/mIconFolder.svg'), self.openFolder),
+            OptionButton(QgsApplication.getThemeIcon('/mIconFile.svg'), self.openFile),
+        ])
+        #Utworzenie modelu dla listy załączników
+        self.model = FilesModel(columns=['Opcje', 'Pliki'])
 
     # KONFIGURACJA
 
@@ -60,3 +66,9 @@ class FilesBackend(BackendAbstract):
             return
         rows = [ index.row() for index in selected ]
         self.model.removeRow(rows[0])
+
+    def openFolder(self, index):
+        print( 'openFolder' )
+    
+    def openFile(self, index):
+        print( 'openFile' )
