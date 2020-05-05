@@ -24,12 +24,10 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         """ Stworzenie kontrolki """
         ui_path = Path(__file__).parent.joinpath('widget.ui')
         self.widget = uic.loadUi(str(ui_path))
-        #Zapisujemy ustawienia, żeby mieć do nich później dostęp
-        self.widget.config = self.config()
         #Pomocniczy obiekt do wyświetlania komunikatów
-        self.widget.bar = QgsMessageBar()
-        self.widget.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
-        self.widget.layout().insertWidget( 0, self.widget.bar )
+        self.bar = QgsMessageBar()
+        self.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
+        self.widget.layout().insertWidget( 0, self.bar )
         if self.isInTable(parent):
             #Wyśwetlenie kontrolki w tabeli atrybutów
             # https://www.qgis.org/api/qgskeyvaluewidgetwrapper_8cpp_source.html#l00036
@@ -48,7 +46,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         """ Konfiguracja kontrolki """
         #Pobranie aktualnego sterownika
         backend_name = self.config()['backend']
-        self.backend = backends_registry.backends[backend_name]
+        self.backend = backends_registry.getBackendInstance( backend_name, self )
         #Ikony przycisków
         self.widget.btnAdd.setIcon( QgsApplication.getThemeIcon('/mActionAdd.svg') )
         self.widget.btnDelete.setIcon( QgsApplication.getThemeIcon('/mActionRemove.svg') )
@@ -57,7 +55,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         self.widget.btnDelete.clicked.connect( self.deleteAttachment  )
         #Model listy załączników
         self.widget.tblAttachments.setModel( self.backend.model )
-        self.backend.setOptions( self.widget.tblAttachments )
+        self.backend.setOptions()
     
     def setEnabled(self, enabled):
         """ Ustawienie aktywności elementów formularza w zależności od trybu edycji """
@@ -74,7 +72,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     
     def addAttachment(self):
         """ Dodanie załącznika """
-        result = self.backend.addAttachment(self)
+        result = self.backend.addAttachment()
         if result:
             self.emitValueChanged()
     
@@ -83,5 +81,5 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         result = QMessageBox.question(self.widget, 'Usuwanie', 'Usunąć wybranny załącznik z listy?')
         if result == QMessageBox.No:
             return
-        self.backend.deleteAttachment(self)
+        self.backend.deleteAttachment()
         self.emitValueChanged()

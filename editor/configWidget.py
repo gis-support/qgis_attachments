@@ -25,7 +25,7 @@ class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
         if self.widget is not None:
             self.layout().removeWidget( self.widget )
             self.widget.deleteLater()
-        self.currentBackend = backends_registry.backends[name]
+        self.currentBackend = backends_registry.getBackendInstance( name, self )
         self.widget = self.currentBackend.createConfigWidget()
         self.setDescription()
         self.layout().addWidget( self.widget )

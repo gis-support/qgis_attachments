@@ -23,7 +23,10 @@ class BackendsRegistry:
                 # Odrzucamy inne klasy niż dziedziczące po klasie bazowej
                 if hasattr(c, 'LABEL'):
                     #Aktywacja i rejestracja modułu
-                    self.backends[c.LABEL] = c()
+                    self.backends[c.LABEL] = c
+    
+    def getBackendInstance(self, name, parent):
+        return self.backends[name]( parent )
 
 #Rejestr jest singletonem, który jest importowany jako instancja klasy
 backends_registry = BackendsRegistry()

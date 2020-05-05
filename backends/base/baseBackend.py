@@ -9,11 +9,12 @@ class BackendAbstract:
     SEPARATOR = ';'
     DESCRIPTION = ''
 
-    def __init__(self, options=[], options_column=0):
+    def __init__(self, options=[], options_column=0, parent=None):
         #Lista opcji dla załącznika
         self.options = options
         #W której kolumnie mają znaleźć się opcje
         self.options_column = options_column
+        self.parent = parent
 
     # KONFIGURACJA
 
@@ -47,9 +48,10 @@ class BackendAbstract:
         #Wypełnienie lisy załączników
         self.model.insertRows(values)
     
-    def setOptions(self, table):
+    def setOptions(self):
         """ Ustawienie dodatkowych opcji dla załączników w podanej kolumnie """
         if self.options:
+            table = self.parent.widget.tblAttachments
             buttons = OptionButtonsDelegate(self.options)
             table.setItemDelegateForColumn(self.options_column, buttons)
             column_width = buttons.columnWidth()

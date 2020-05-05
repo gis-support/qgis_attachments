@@ -20,11 +20,11 @@ class FilesBackend(BackendAbstract):
     #Opis
     DESCRIPTION = 'Przechowuje ścieżki do plików z dysku lokalnego.'
 
-    def __init__(self):
+    def __init__(self, parent):
         super(FilesBackend, self).__init__([
             OptionButton(QgsApplication.getThemeIcon('/mIconFolder.svg'), self.openFolder),
             OptionButton(QgsApplication.getThemeIcon('/mIconFile.svg'), self.openFile),
-        ])
+        ], parent=parent)
         #Utworzenie modelu dla listy załączników
         self.model = FilesModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR)
 
@@ -60,7 +60,7 @@ class FilesBackend(BackendAbstract):
         self.configWidget.fwDirectory.setFilePath( config.get('relative_directory', '') )
     
     def warnings(self, layer, fieldIdx):
-        """ Zwraca dodatkowe informacje o ograniczecniach wskazanego pola """
+        """ Zwraca dodatkowe informacje o ograniczeniach wskazanego pola """
         field = layer.fields().field( fieldIdx )
         warnings = []
         if field.length()>0:
@@ -69,11 +69,11 @@ class FilesBackend(BackendAbstract):
 
     # FORMULARZ
     
-    def addAttachment(self, parent):
+    def addAttachment(self):
         """Dodanie nowego załącznika
         Zwraca True w przypadku powodzenia lub False jeśli dodawanie się nie powiodło"""
-        files, _ = QFileDialog.getOpenFileNames(parent.widget, 'Wybierz załączniki')
-        config = parent.config()
+        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
+        config = self.parent.config()
         relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
         if relative_mode!=QgsFileWidget.Absolute:
             #Jeśli użytkownik wskazał zapis ścieżek relatywnych to konwertujemy pełne ścieżki
@@ -87,24 +87,25 @@ class FilesBackend(BackendAbstract):
         else:
             #Zajęcie się ukośnikami (w zasadzie dotyczy tylko Windows)
             files = [ QDir.toNativeSeparators(f) for f in files ]
-        result = self.model.insertRows(files, max_length=parent.field().length())
+        result = self.model.insertRows(files, max_length=self.parent.field().length())
         if not result:
             #Nie dodano załączników ponieważ przekroczono max długość pola
-            field = parent.field()
-            parent.widget.bar.pushCritical( 'Błąd',
+            field = self.parent.field()
+            self.parent.widget.bar.pushCritical( 'Błąd',
                 f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).')
         return result
     
-    def deleteAttachment(self, parent):
+    def deleteAttachment(self):
         """Usunięcie zaznaczonych załączników"""
-        selected = parent.widget.tblAttachments.selectedIndexes()
+        selected = self.parent.widget.tblAttachments.selectedIndexes()
         if not selected:
             return
         rows = [ index.row() for index in selected ]
         self.model.removeRow(rows[0])
     
-    def getAbsoluteFilePath(self, file_path, config):
+    def getAbsoluteFilePath(self, file_path):
         """ Zwraca pełną ścieżkę do pliku """
+        config = self.parent.config()
         file_path = QFileInfo( file_path )
         relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
         #Sprawdzenie czy ścieżka jest relatywna i czy są ustawione odpowiednie opcje
@@ -115,12 +116,12 @@ class FilesBackend(BackendAbstract):
             file_path = QFileInfo( QDir(relative_path), file_path.filePath() )
         return file_path
 
-    def openFolder(self, index, editor):
+    def openFolder(self, index):
         """ Otworzenie katalogu z plikiem """
-        file_path = self.getAbsoluteFilePath( index.data(), editor.config )
+        file_path = self.getAbsoluteFilePath( index.data() )
         if not file_path.exists():
             #Katalog nie istnieje
-            editor.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
+            self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
         if sys.platform == 'win32':
             #Windows
@@ -129,12 +130,12 @@ class FilesBackend(BackendAbstract):
             #Otworzenie katalogu w systemowym menedżerze plików
             QDesktopServices.openUrl( QUrl(f'file:///{file_path.dir().path()}') )
 
-    def openFile(self, index, editor):
+    def openFile(self, index):
         """ Otworzenie pliku w domyslnej aplikacji """
-        file_path = self.getAbsoluteFilePath( index.data(), editor.config )
+        file_path = self.getAbsoluteFilePath( index.data() )
         if not file_path.exists():
             #Plik nie istenieje
-            editor.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
+            self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
         #Uruchomienie pliku w domyślnej aplikacji
         QDesktopServices.openUrl( QUrl(f'file:///{file_path.absoluteFilePath()}') )

@@ -46,10 +46,8 @@ class OptionButtonsDelegate(QStyledItemDelegate):
             except IndexError:
                 #Nie znaleziono opcji
                 return False
-            #Dostęp do głównego widgetu jest nieco skomplikowany, ale działa
-            editor = QgsApplication.instance().widgetAt(event.globalPos()).parent().parent()
             #Znaleziono opcję, wywołujemy jej akcję
-            button.callback(index, editor)
+            button.callback(index)
         return False
 
     def calcPosition(self, column, option):
