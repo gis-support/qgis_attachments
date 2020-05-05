@@ -50,7 +50,7 @@ class FilesBackend(BackendAbstract):
         field = layer.fields().field( fieldIdx )
         warnings = []
         if field.length()>0:
-            warnings.append( f'Wskazane pole może przechowywać maksymalnie {field.length()} znaków co ogranicza liczbę przechowywanych załączników.' )
+            warnings.append( f'Wskazane pole może przechowywać do {field.length()} znaków co ogranicza liczbę przechowywanych załączników.' )
         return warnings
 
     # FORMULARZ
