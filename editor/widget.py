@@ -2,10 +2,11 @@
 
 from pathlib import Path
 from qgis.core import QgsApplication
-from qgis.gui import QgsEditorWidgetWrapper
+from qgis.gui import QgsEditorWidgetWrapper, QgsMessageBar
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSize
-from qgis.PyQt.QtWidgets import QMessageBox, QFrame, QHBoxLayout
+from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QHBoxLayout,
+    QSizePolicy)
 from qgis_attachments.backends.registry import backends_registry
 
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
@@ -23,6 +24,10 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         """ Stworzenie kontrolki """
         ui_path = Path(__file__).parent.joinpath('widget.ui')
         self.widget = uic.loadUi(str(ui_path))
+        #Pomocniczy obiekt do wyświetlania komunikatów
+        self.bar = QgsMessageBar()
+        self.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
+        self.widget.layout().insertWidget( 0, self.bar )
         if self.isInTable(parent):
             #Wyśwetlenie kontrolki w tabeli atrybutów
             # https://www.qgis.org/api/qgskeyvaluewidgetwrapper_8cpp_source.html#l00036
@@ -67,8 +72,9 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     
     def addAttachment(self):
         """ Dodanie załącznika """
-        self.backend.addAttachment(self)
-        self.emitValueChanged()
+        result = self.backend.addAttachment(self)
+        if result:
+            self.emitValueChanged()
     
     def deleteAttachment(self):
         """ Usunięcie załącznika """

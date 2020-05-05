@@ -22,10 +22,11 @@ class AttachmentItem:
 class AttachmentsAbstractModel(QAbstractTableModel):
     """ Bazowy model dla listy załączników """
     
-    def __init__(self, items=[], columns=['Załącznik'], parent=None):
+    def __init__(self, items=[], columns=['Załącznik'], separator=';', parent=None):
         super(AttachmentsAbstractModel, self).__init__(parent)
         self.items = items
         self.columns = columns
+        self.separator = separator
     
     def rowCount(self, parent=QModelIndex()):
         return len(self.items)
@@ -50,13 +51,18 @@ class AttachmentsAbstractModel(QAbstractTableModel):
         elif role == Qt.UserRole:
             return item
     
-    def insertRows(self, rows, position=None, parent=QModelIndex()):
+    def insertRows(self, rows, position=None, parent=QModelIndex(), max_length=-1):
         if position is None:
             position = self.rowCount()
         self.beginInsertRows(parent, position, position + len(rows) - 1)
         for i, item in enumerate(rows):
             self.items.insert(position+i, AttachmentItem(item))
+        #Sprawdzamy czy nie została przekroczona max ilośc znaków w polu
+        if max_length>0 and len(self.serialize())>max_length:
+            del self.items[position:position+len(rows)]
+            return False
         self.endInsertRows()
+        return True
     
     def insertRow(self, data, position=None, parent=QModelIndex()):
         if position is None:
@@ -78,6 +84,6 @@ class AttachmentsAbstractModel(QAbstractTableModel):
     def removeRow(self, row):
         self.removeRows(row, 1)
     
-    def serialize(self, separator):
+    def serialize(self):
         """ Konwersja listy załączników do tekstu, który można zapisać w tabeli atrybutów """
-        return separator.join( item.serialize() for item in self.items )
+        return self.separator.join( item.serialize() for item in self.items )

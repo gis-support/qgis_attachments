@@ -3,7 +3,7 @@
 from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
-from qgis.core import NULL, QgsProject, QgsApplication
+from qgis.core import NULL, QgsProject, QgsApplication, Qgis
 from qgis.utils import iface
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
@@ -27,7 +27,7 @@ class FilesBackend(BackendAbstract):
             OptionButton(QgsApplication.getThemeIcon('/mIconFile.svg'), self.openFile),
         ])
         #Utworzenie modelu dla listy załączników
-        self.model = FilesModel(columns=['Opcje', 'Pliki'])
+        self.model = FilesModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR)
 
     # KONFIGURACJA
 
@@ -56,7 +56,8 @@ class FilesBackend(BackendAbstract):
     # FORMULARZ
     
     def addAttachment(self, parent):
-        """Dodanie nowego załącznika"""
+        """Dodanie nowego załącznika
+        Zwraca True w przypadku powodzenia lub False jeśli dodawanie się nie powiodło"""
         files, _ = QFileDialog.getOpenFileNames(parent.widget, 'Wybierz załączniki')
         if parent.config().get('relative', False):
             #Jeśli użytkownik wskazał zapis ściżek relatywnych to konwertujemy pełne ścieżki
@@ -72,7 +73,13 @@ class FilesBackend(BackendAbstract):
         else:
             #Zajęcie się ukośnikami (w zasadzie dotyczy tylko Windows)
             files = [ str(Path(f)) for f in files ]
-        self.model.insertRows(files)
+        result = self.model.insertRows(files, max_length=parent.field().length())
+        if not result:
+            #Nie dodano załączników ponieważ przekroczono max długość pola
+            field = parent.field()
+            parent.bar.pushMessage(f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).',
+                                    level=Qgis.Critical)
+        return result
     
     def deleteAttachment(self, parent):
         """Usunięcie zaznaczonych załączników"""

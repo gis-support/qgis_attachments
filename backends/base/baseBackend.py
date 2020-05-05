@@ -31,7 +31,7 @@ class BackendAbstract:
     def value(self):
         """Konwersja danych z modelu do tekstu"""
         #Serializacja danych do tekstu
-        value = self.model.serialize( self.SEPARATOR )
+        value = self.model.serialize()
         if not value:
             #Brak załączników
             return NULL
