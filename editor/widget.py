@@ -25,9 +25,9 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         ui_path = Path(__file__).parent.joinpath('widget.ui')
         self.widget = uic.loadUi(str(ui_path))
         #Pomocniczy obiekt do wyświetlania komunikatów
-        self.bar = QgsMessageBar()
-        self.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
-        self.widget.layout().insertWidget( 0, self.bar )
+        self.widget.bar = QgsMessageBar()
+        self.widget.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )
+        self.widget.layout().insertWidget( 0, self.widget.bar )
         if self.isInTable(parent):
             #Wyśwetlenie kontrolki w tabeli atrybutów
             # https://www.qgis.org/api/qgskeyvaluewidgetwrapper_8cpp_source.html#l00036

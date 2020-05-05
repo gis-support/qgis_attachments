@@ -3,8 +3,8 @@
 from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
+from qgis.PyQt.QtGui import QCursor
 from qgis.core import NULL, QgsProject, QgsApplication, Qgis
-from qgis.utils import iface
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
@@ -77,8 +77,8 @@ class FilesBackend(BackendAbstract):
         if not result:
             #Nie dodano załączników ponieważ przekroczono max długość pola
             field = parent.field()
-            parent.bar.pushMessage(f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).',
-                                    level=Qgis.Critical)
+            parent.widget.bar.pushCritical( 'Błąd',
+                f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).')
         return result
     
     def deleteAttachment(self, parent):
@@ -93,9 +93,11 @@ class FilesBackend(BackendAbstract):
         """ Otworzenie katalogu z plikiem """
         file_path = Path(index.data())
         file_dir = file_path.parent
+        #Dostęp do widgetu komunikacyjnego jest nieco skomplikowany, ale działa
+        bar = QgsApplication.instance().widgetAt(QCursor().pos()).parent().parent().bar
         if not file_dir.exists():
             #Katalog nie istnieje
-            iface.messageBar().pushCritical('Błąd', f"Katalog '{file_dir}'' nie istnieje.")
+            bar.pushCritical( 'Błąd', f"Katalog '{file_dir}'' nie istnieje." )
             return
         if sys.platform == 'win32':
             #Windows
@@ -108,14 +110,16 @@ class FilesBackend(BackendAbstract):
         # elif sys.platform == 'darwin':
         #     subprocess.call(['open', '--', file_path])
         else:
-            iface.messageBar().pushCritical('Błąd', 'Nie można otworzyć folderu, niewspierany system operacyjny')
+            bar.pushCritical( 'Błąd', 'Nie można otworzyć folderu, niewspierany system operacyjny' )
 
     def openFile(self, index):
         """ Otworzenie pliku w domyslnej aplikacji """
         file_path = Path(index.data())
+        #Dostęp do widgetu komunikacyjnego jest nieco skomplikowany, ale działa
+        bar = QgsApplication.instance().widgetAt(QCursor().pos()).parent().parent().bar
         if not file_path.exists():
             #Plik nie istenieje
-            iface.messageBar().pushCritical('Błąd', f"Plik '{file_path} nie istnieje.")
+            bar.pushCritical( 'Błąd', f"Plik '{file_path} nie istnieje." )
             return
         if sys.platform == 'win32':
             #Windows
@@ -127,4 +131,4 @@ class FilesBackend(BackendAbstract):
         # elif sys.platform == 'darwin':
         #     subprocess.call(['open', '--', file_path])
         else:
-            iface.messageBar().pushCritical('Błąd', 'Nie można otworzyć pliku, niewspierany system operacyjny')
+            bar.pushCritical( 'Błąd', 'Nie można otworzyć pliku, niewspierany system operacyjny' )
