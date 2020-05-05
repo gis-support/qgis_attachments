@@ -24,6 +24,8 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         """ Stworzenie kontrolki """
         ui_path = Path(__file__).parent.joinpath('widget.ui')
         self.widget = uic.loadUi(str(ui_path))
+        #Zapisujemy ustawienia, żeby mieć do nich później dostęp
+        self.widget.config = self.config()
         #Pomocniczy obiekt do wyświetlania komunikatów
         self.widget.bar = QgsMessageBar()
         self.widget.bar.setSizePolicy( QSizePolicy.Minimum, QSizePolicy.Fixed )

@@ -6,19 +6,47 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>370</width>
-    <height>45</height>
+    <width>449</width>
+    <height>142</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <widget class="QCheckBox" name="cbRelativePaths">
-     <property name="text">
-      <string>Przechowuj ścieżki względne</string>
+    <widget class="QGroupBox" name="gbRelativePaths">
+     <property name="title">
+      <string>Względne ścieżki dostępu</string>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QRadioButton" name="rbRelativeProject">
+        <property name="text">
+         <string>w odniesieniu do ścieżki projektu</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="rbRelativeDirectory">
+        <property name="text">
+         <string>w odniesieniu do domyślnej ścieżki:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QgsFileWidget" name="fwDirectory"/>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -36,6 +64,30 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>rbRelativeDirectory</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>fwDirectory</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>136</x>
+     <y>145</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>162</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

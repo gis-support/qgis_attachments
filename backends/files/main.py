@@ -1,16 +1,15 @@
 # coding: utf-8
 
-from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
-from qgis.PyQt.QtGui import QCursor
-from qgis.core import NULL, QgsProject, QgsApplication, Qgis
+from qgis.PyQt.QtCore import QDir, QFileInfo, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+from qgis.core import QgsApplication
+from qgis.gui import QgsFileWidget
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 from pathlib import Path
-import os
-import subprocess
 import sys
 
 class FilesBackend(BackendAbstract):
@@ -35,15 +34,30 @@ class FilesBackend(BackendAbstract):
         """ Utworzenie kontrolki z kofiguracją """
         ui_path = Path(__file__).parent.joinpath('config.ui')
         self.configWidget = uic.loadUi(str(ui_path))
+        self.configWidget.fwDirectory.setStorageMode( QgsFileWidget.GetDirectory )
         return self.configWidget
     
     def config(self):
         """Zapis ustawień konfiguracji"""
-        return {'relative':self.configWidget.cbRelativePaths.isChecked()}
+        if self.configWidget.gbRelativePaths.isChecked():
+            if self.configWidget.rbRelativeProject.isChecked():
+                relative_mode = QgsFileWidget.RelativeProject
+            else:
+                relative_mode = QgsFileWidget.RelativeDefaultPath
+        else:
+            relative_mode = QgsFileWidget.Absolute
+        return {
+            'relative_mode': relative_mode,
+            'relative_directory': self.configWidget.fwDirectory.filePath()
+        }
 
     def setConfig(self, config):
         """Odczyt ustawień i dostosowanie GUI"""
-        self.configWidget.cbRelativePaths.setChecked( config.get('relative', False) )
+        relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
+        self.configWidget.gbRelativePaths.setChecked( relative_mode!=QgsFileWidget.Absolute )
+        self.configWidget.rbRelativeProject.setChecked( relative_mode==QgsFileWidget.RelativeProject )
+        self.configWidget.rbRelativeDirectory.setChecked( relative_mode==QgsFileWidget.RelativeDefaultPath )
+        self.configWidget.fwDirectory.setFilePath( config.get('relative_directory', '') )
     
     def warnings(self, layer, fieldIdx):
         """ Zwraca dodatkowe informacje o ograniczecniach wskazanego pola """
@@ -59,20 +73,20 @@ class FilesBackend(BackendAbstract):
         """Dodanie nowego załącznika
         Zwraca True w przypadku powodzenia lub False jeśli dodawanie się nie powiodło"""
         files, _ = QFileDialog.getOpenFileNames(parent.widget, 'Wybierz załączniki')
-        if parent.config().get('relative', False):
-            #Jeśli użytkownik wskazał zapis ściżek relatywnych to konwertujemy pełne ścieżki
-            project_path = Path( QgsProject.instance().absolutePath() )
+        config = parent.config()
+        relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
+        if relative_mode!=QgsFileWidget.Absolute:
+            #Jeśli użytkownik wskazał zapis ścieżek relatywnych to konwertujemy pełne ścieżki
+            relative_path = QDir( QgsProject.instance().absolutePath() )
+            if relative_mode==QgsFileWidget.RelativeDefaultPath:
+                relative_path = QDir( config.get('relative_directory', relative_path) )
             _files = []
             for file_path in files:
-                try:
-                    _files.append( str(Path(file_path).relative_to(project_path)) )
-                except ValueError:
-                    #Konwersja nieudana, więc zapisujemy pełną ścieżkę
-                    _files.append(file_path)
+                _files.append( QDir.toNativeSeparators( relative_path.relativeFilePath(file_path) ) )
             files = _files
         else:
             #Zajęcie się ukośnikami (w zasadzie dotyczy tylko Windows)
-            files = [ str(Path(f)) for f in files ]
+            files = [ QDir.toNativeSeparators(f) for f in files ]
         result = self.model.insertRows(files, max_length=parent.field().length())
         if not result:
             #Nie dodano załączników ponieważ przekroczono max długość pola
@@ -88,47 +102,39 @@ class FilesBackend(BackendAbstract):
             return
         rows = [ index.row() for index in selected ]
         self.model.removeRow(rows[0])
+    
+    def getAbsoluteFilePath(self, file_path, config):
+        """ Zwraca pełną ścieżkę do pliku """
+        file_path = QFileInfo( file_path )
+        relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
+        #Sprawdzenie czy ścieżka jest relatywna i czy są ustawione odpowiednie opcje
+        if file_path.isRelative() and relative_mode != QgsFileWidget.Absolute:
+            relative_path = QDir( QgsProject.instance().absolutePath() )
+            if relative_mode==QgsFileWidget.RelativeDefaultPath:
+                relative_path = QDir( config.get('relative_directory', relative_path) )
+            file_path = QFileInfo( QDir(relative_path), file_path.filePath() )
+        return file_path
 
-    def openFolder(self, index):
+    def openFolder(self, index, editor):
         """ Otworzenie katalogu z plikiem """
-        file_path = Path(index.data())
-        file_dir = file_path.parent
-        #Dostęp do widgetu komunikacyjnego jest nieco skomplikowany, ale działa
-        bar = QgsApplication.instance().widgetAt(QCursor().pos()).parent().parent().bar
-        if not file_dir.exists():
+        file_path = self.getAbsoluteFilePath( index.data(), editor.config )
+        if not file_path.exists():
             #Katalog nie istnieje
-            bar.pushCritical( 'Błąd', f"Katalog '{file_dir}'' nie istnieje." )
+            editor.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
         if sys.platform == 'win32':
             #Windows
-            #Konwersja ukośników na backslash
-            subprocess.call(f'explorer /select,"{str(file_path)}"', shell=True)
-        elif sys.platform.startswith('linux'):
-            #Linux
-            subprocess.call(['xdg-open', file_dir])
-        # TODO: MacOS do przetestowania
-        # elif sys.platform == 'darwin':
-        #     subprocess.call(['open', '--', file_path])
+            subprocess.call(f'explorer /select,"{QDir.toNativeSeparators(file_path.absoluteFilePath())}"', shell=True)
         else:
-            bar.pushCritical( 'Błąd', 'Nie można otworzyć folderu, niewspierany system operacyjny' )
+            #Otworzenie katalogu w systemowym menedżerze plików
+            QDesktopServices.openUrl( QUrl(f'file:///{file_path.dir().path()}') )
 
-    def openFile(self, index):
+    def openFile(self, index, editor):
         """ Otworzenie pliku w domyslnej aplikacji """
-        file_path = Path(index.data())
-        #Dostęp do widgetu komunikacyjnego jest nieco skomplikowany, ale działa
-        bar = QgsApplication.instance().widgetAt(QCursor().pos()).parent().parent().bar
+        file_path = self.getAbsoluteFilePath( index.data(), editor.config )
         if not file_path.exists():
             #Plik nie istenieje
-            bar.pushCritical( 'Błąd', f"Plik '{file_path} nie istnieje." )
+            editor.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
-        if sys.platform == 'win32':
-            #Windows
-            os.startfile( file_path )
-        elif sys.platform.startswith('linux'):
-            #Linux
-            subprocess.call(['xdg-open', file_path])
-        # TODO: MacOS do przetestowania
-        # elif sys.platform == 'darwin':
-        #     subprocess.call(['open', '--', file_path])
-        else:
-            bar.pushCritical( 'Błąd', 'Nie można otworzyć pliku, niewspierany system operacyjny' )
+        #Uruchomienie pliku w domyślnej aplikacji
+        QDesktopServices.openUrl( QUrl(f'file:///{file_path.absoluteFilePath()}') )
