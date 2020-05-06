@@ -18,6 +18,9 @@ class BackendAbstract:
 
     # KONFIGURACJA
 
+    def createConfigWidget(self):
+        return
+
     def config(self):
         return {}
     

@@ -102,7 +102,7 @@ class FilesBackend(BackendAbstract):
         if not result:
             #Nie dodano załączników ponieważ przekroczono max długość pola
             field = self.parent.field()
-            self.parent.widget.bar.pushCritical( 'Błąd',
+            self.parent.bar.pushCritical( 'Błąd',
                 f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).')
         return result
     

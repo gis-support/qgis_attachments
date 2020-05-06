@@ -26,9 +26,10 @@ class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
             self.layout().removeWidget( self.widget )
             self.widget.deleteLater()
         self.currentBackend = backends_registry.getBackendInstance( name, self )
-        self.widget = self.currentBackend.createConfigWidget()
         self.setDescription()
-        self.layout().addWidget( self.widget )
+        self.widget = self.currentBackend.createConfigWidget()
+        if self.widget:
+            self.layout().addWidget( self.widget )
     
     def setDescription(self):
         """ Opis sterownika """
