@@ -25,15 +25,15 @@ class LayersBackend(BackendAbstract):
                 'Wybrana warstwa nie znajduje się w geopaczce'
             )
             return
-        if not self.connection:
-            self.connectAndCreateTable(geopackage)
+        self.connectAndCreateTable(geopackage)
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
         files_indexes = self.saveAttachments(files)
         result = self.model.insertRows(files_indexes, max_length=self.parent.field().length())
+        self.connection.close()
         return result
 
     def connectAndCreateTable(self, geopackage_path):
-        """Tworzy tabelę do przechowywania załączników"""
+        """Tworzy połączenie z bazą danych i tworzy tabelę jeśli ta nie istnieje"""
         self.connection = sqlite3.connect(geopackage_path)
         sql = """CREATE TABLE IF NOT EXISTS qgis_attachments (
                 id INTEGER PRIMARY KEY,
@@ -43,6 +43,7 @@ class LayersBackend(BackendAbstract):
         self.connection.execute(sql)
 
     def saveAttachments(self, files_list):
+        """Zapisuje załączniki i zwraca listę id"""
         sql = """INSERT INTO qgis_attachments (name, data) VALUES (?, ?)"""
         cursor = self.connection.cursor()
         ids = []
