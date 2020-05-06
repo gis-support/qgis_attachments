@@ -4,13 +4,24 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.PyQt.QtCore import QDir, QFileInfo, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsProject
 from qgis.gui import QgsFileWidget
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 from pathlib import Path
 import sys
+import subprocess
+
+if sys.platform.startswith('linux'):
+    #Wyszukanie systemowego menedżera plików
+    from shutil import which
+    for file_manager in ['nemo', 'nautilus', 'dolphin']:
+        if which(file_manager):
+            FILE_MANAGER = file_manager
+            break
+    else:
+        FILE_MANAGER = 'xdg-open'
 
 class FilesBackend(BackendAbstract):
     """ Przechowuje ścieżki plików w tabeli atrybutów """
@@ -123,12 +134,16 @@ class FilesBackend(BackendAbstract):
             #Katalog nie istnieje
             self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
+        file_dir = QDir.toNativeSeparators(file_path.absoluteFilePath())
         if sys.platform == 'win32':
             #Windows
-            subprocess.call(f'explorer /select,"{QDir.toNativeSeparators(file_path.absoluteFilePath())}"', shell=True)
+            subprocess.call(f'explorer /select,"{file_dir}"', shell=True)
+        elif sys.platform.startswith('linux'):
+            #Otworzenie katalogu w systemowym menedżerze plików na Linux
+            subprocess.Popen( f'{FILE_MANAGER} {file_dir}', shell=True )
         else:
-            #Otworzenie katalogu w systemowym menedżerze plików
-            QDesktopServices.openUrl( QUrl(f'file:///{file_path.dir().path()}') )
+            #Inny system operacyjny
+            QDesktopServices.openUrl( QUrl(f'file:///{file_dir}') )
 
     def openFile(self, index):
         """ Otworzenie pliku w domyslnej aplikacji """
@@ -138,4 +153,4 @@ class FilesBackend(BackendAbstract):
             self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
             return
         #Uruchomienie pliku w domyślnej aplikacji
-        QDesktopServices.openUrl( QUrl(f'file:///{file_path.absoluteFilePath()}') )
+        QDesktopServices.openUrl( QUrl(f'file:///{QDir.toNativeSeparators(file_path.absoluteFilePath())}') )
