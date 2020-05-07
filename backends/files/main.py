@@ -83,7 +83,13 @@ class FilesBackend(BackendAbstract):
     def addAttachment(self):
         """Dodanie nowego załącznika
         Zwraca True w przypadku powodzenia lub False jeśli dodawanie się nie powiodło"""
+        # Rozwiązanie problemu z crashowaniem na Windows
+        # https://stackoverflow.com/a/38456379
+        self.parent.widget.setFocus()
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
+        if not files:
+            #Nie wybrano plików
+            return
         config = self.parent.config()
         relative_mode = config.get('relative_mode', QgsFileWidget.Absolute)
         if relative_mode!=QgsFileWidget.Absolute:

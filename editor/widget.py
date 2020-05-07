@@ -5,8 +5,8 @@ from qgis.core import QgsApplication
 from qgis.gui import QgsEditorWidgetWrapper, QgsMessageBar
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSize
-from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QHBoxLayout,
-    QSizePolicy)
+from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QVBoxLayout,
+    QSizePolicy, QPushButton, QSpacerItem, QHBoxLayout)
 from qgis_attachments.backends.registry import backends_registry
 
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
@@ -34,12 +34,22 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
             frame = QFrame(parent)
             self.widget.setParent(frame)
             frame.setFrameShape( QFrame.StyledPanel )
-            layout = QHBoxLayout( frame )
-            layout.addWidget( self.widget )
             frame.setMinimumSize( QSize( 320, 200 ) )
+            formLayout = QVBoxLayout( frame )
+            formLayout.addWidget( self.widget )
+            
+            #Dodatkowy przycisk Zamknij
+            btn_layout = QHBoxLayout()
+            spacer = QSpacerItem(40, 5, QSizePolicy.Expanding, QSizePolicy.Minimum)
+            btn_layout.addItem( spacer )
+            btnClose = QPushButton('Zamknij', frame)
+            btnClose.clicked.connect( frame.close )
+            btn_layout.addWidget( btnClose )
+            formLayout.addLayout( btn_layout )
             return frame
-        #Kontrolka w formularzu
-        self.widget.setParent(parent)
+        else:
+            #Kontrolka w formularzu
+            self.widget.setParent(parent)
         return self.widget
     
     def initWidget(self, editor):
