@@ -31,7 +31,7 @@ class LayersBackend(BackendAbstract):
             OptionButton(QgsApplication.getThemeIcon('/mIconFolder.svg'),
                 lambda index, option='saveTemp': self.fileAction(index, option)
             ),
-            OptionButton(QgsApplication.getThemeIcon('/mIconFolder.svg'),
+            OptionButton(QgsApplication.getThemeIcon('/mActionSharingExport.svg'),
                 lambda index, option='saveToDir': self.fileAction(index, option)
             ),
         ], parent=parent)
@@ -65,8 +65,8 @@ class LayersBackend(BackendAbstract):
         cursor.execute(sql, self.model.data(index)[0])
         self.connection.commit()
         self.model.removeRow(index.row())
-        self.connection.close()
         cursor.close()
+        self.connection.close()
 
     def connect(self):
         """Tworzy połączenie z bazą danych i tabelę jeśli ta nie istnieje"""
@@ -80,6 +80,8 @@ class LayersBackend(BackendAbstract):
 
     def saveAttachments(self, files_list):
         """Zapisuje załączniki i zwraca listę id"""
+        if not self.connection:
+            self.connect()
         sql = """INSERT INTO qgis_attachments (name, data) VALUES (?, ?)"""
         cursor = self.connection.cursor()
         ids = []

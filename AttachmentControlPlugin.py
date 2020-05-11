@@ -29,7 +29,7 @@ from .resources import *
 
 class AttachmentControlPlugin():
     def __init__(self, iface):
-        widget = AttachmentControlWidget('Załączniki')
+        widget = AttachmentControlWidget('QGIS Attachments')
         QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', widget)
 
     def initGui(self):

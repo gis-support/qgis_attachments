@@ -15,6 +15,30 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def __init__(self, vl, fieldIdx, editor, parent):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.widget = None
+        self.vl = vl
+        self.fieldIdx = fieldIdx
+        self.changes = []
+        self.vl.attributeValueChanged.connect(self.manualValueSave)
+        self.vl.afterRollBack.connect(self.checkForUnsavedChanges)
+
+    def checkForUnsavedChanges(self):
+        """Wymuszenie zapisania zmian w kolumnie pola kontrolki"""
+        if len(self.changes) > 0:
+            for change in self.changes:
+                self.vl.dataProvider().changeAttributeValues(change)
+            self.vl.reload()
+            self.changes = []
+
+    def manualValueSave(self, fid, idx, value):
+        """Ręcznie ustawianie wartości pola kontrolki"""
+        if self.getBackendLabel() == 'Geopackage' and idx == self.fieldIdx:
+            if self.vl.isEditCommandActive():
+                self.changes.append({fid: {idx: value}})
+                self.vl.dataProvider().changeAttributeValues({fid: {idx: value}})
+
+    def getBackendLabel(self):
+        """Pobiera label obecnego backendu"""
+        return self.backend.LABEL if self.backend else ''
 
     def valid(self):
         """ Czy właściwa kontrolka została zainicjowana """
