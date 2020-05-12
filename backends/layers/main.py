@@ -9,18 +9,7 @@ from qgis.core import NULL
 import subprocess
 import tempfile
 import sqlite3
-import sys
 import os
-
-if sys.platform.startswith('linux'):
-    #Wyszukanie systemowego menedżera plików
-    from shutil import which
-    for file_manager in ['nemo', 'nautilus', 'dolphin']:
-        if which(file_manager):
-            FILE_MANAGER = file_manager
-            break
-    else:
-        FILE_MANAGER = 'xdg-open'
 
 class LayersBackend(BackendAbstract):
 
@@ -131,24 +120,29 @@ class LayersBackend(BackendAbstract):
 
     def fileAction(self, index, option):
         """Zapisuje plik do katalogu tymczasowego lub wskazanego przez użytkownika"""
+
+        def saveFile(save_dir, file_data, filename=None):
+            """Funkcja pomocnicza do zapisu pliku we wskazanym miejscu"""
+            path = os.path.join(save_dir, filename) if filename else save_dir
+            with open(path, 'wb') as f:
+                f.write(file_data)
+            return path
+
         self.checkConnection()
         save_dir = ''
+        sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
+        cursor = self.connection.cursor()
+        file_name, file_data = cursor.execute(sql.format(self.model.data(index, field='id'))).fetchone()
+        cursor.close()
         if option == 'saveTemp':
-            save_dir = tempfile.gettempdir()
+            path = tempfile.gettempdir()
+            out_path = saveFile(path, file_data, file_name)
+            QDesktopServices.openUrl(QUrl(f'file:///{QDir.toNativeSeparators(out_path)}'))
         elif option == 'saveToDir':
             self.parent.widget.setFocus()
-            save_dir = QFileDialog.getExistingDirectory(self.parent.widget, 'Wybierz folder')
-        cursor = self.connection.cursor()
-        sql = """SELECT name, data FROM qgis_attachments WHERE id = ?"""
-        db_id = self.model.data(index)[0]
-        file_name, file_data = cursor.execute(sql, db_id).fetchone()
-        cursor.close()
-        file_path = os.path.join(save_dir, file_name)
-        with open(file_path, 'wb') as f:
-            f.write(file_data)
-        if sys.platform == 'win32':
-            #Windows
-            subprocess.call(f'explorer /select,"{file_path}"', shell=True)
-        elif sys.platform.startswith('linux'):
-            #Otworzenie katalogu w systemowym menedżerze plików na Linux
-            subprocess.Popen( f'{FILE_MANAGER} {file_path}', shell=True )        
+            path, _ = QFileDialog.getSaveFileName()
+            saveFile(path, file_data)
+            self.parent.bar.pushSuccess(
+                'Sukces',
+                f'Pomyślnie wyeksportowano plik {file_name}'
+            )
