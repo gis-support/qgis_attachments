@@ -27,7 +27,7 @@ class FilesBackend(BackendAbstract):
     """ Przechowuje ścieżki plików w tabeli atrybutów """
 
     #Nazwa wyświetlana na liście (unikalna)
-    LABEL = 'Pliki'
+    LABEL = 'Mój komputer'
     #Opis
     DESCRIPTION = 'Przechowuje ścieżki do plików z dysku lokalnego.'
 
