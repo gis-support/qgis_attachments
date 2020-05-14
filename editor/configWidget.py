@@ -15,8 +15,11 @@ class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
         self.currentBackend = None
         ui_path = os.path.join(os.path.dirname(__file__), 'configWidget.ui')
         uic.loadUi(ui_path, self)
-        for backend_name in backends_registry.backends:
+        for index, backend_name in enumerate(backends_registry.backends):
+            supported = backends_registry.supported[backend_name]
             self.cmbBackends.addItem( backend_name )
+            if not supported(vl):
+                self.cmbBackends.model().item(index).setEnabled(False)
         self.cmbBackends.currentTextChanged.connect( self.setBackend )
         self.setBackend( self.cmbBackends.currentText() )
     

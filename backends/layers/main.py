@@ -188,3 +188,7 @@ class LayersBackend(BackendAbstract):
             if self.parent.layer().name() in obj.objectName() and isinstance(obj, QDialog): 
                 return obj
         return False
+
+    @staticmethod
+    def isSupported(layer):
+        return True if layer.dataProvider().dataSourceUri().split('|')[0].endswith('.gpkg') else False

@@ -11,6 +11,7 @@ class BackendsRegistry:
         self.backends_dir = Path(__file__).parent
 
         self.backends = {}
+        self.supported = {}
         for module_name in ['files', 'layers']:
             main_module = self.backends_dir.joinpath(module_name).joinpath('main.py')
             #Załadowanie modułu
@@ -24,6 +25,8 @@ class BackendsRegistry:
                 if hasattr(c, 'LABEL'):
                     #Aktywacja i rejestracja modułu
                     self.backends[c.LABEL] = c
+                    if hasattr(c, 'isSupported'):
+                        self.supported[c.LABEL] = c.isSupported
     
     def getBackendInstance(self, name, parent):
         return self.backends[name]( parent )

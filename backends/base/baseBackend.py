@@ -60,3 +60,7 @@ class BackendAbstract:
             column_width = buttons.columnWidth()
             table.setColumnWidth(self.options_column, column_width)
             table.horizontalHeader().setMinimumSectionSize( column_width )
+
+    @staticmethod
+    def isSupported(layer):
+        return True
