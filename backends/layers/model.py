@@ -38,7 +38,11 @@ class LayersModel(AttachmentsAbstractModel):
             position = self.rowCount()
         self.beginInsertRows(parent, position, position + len(rows) - 1)
         for i, item in enumerate(rows):
-            self.items.insert(position+i, LayersAttachmentItem(item[1], item[0]))
+            try:
+                self.items.insert(position+i, LayersAttachmentItem(item[1], item[0]))
+            except IndexError:
+                #Jeśli w kolumnie z załącznikiem nie ma załącznika to zwracany jest NULL
+                pass
         #Sprawdzamy czy nie została przekroczona max ilośc znaków w polu
         if max_length>0 and len(self.serialize())>max_length:
             del self.items[position:position+len(rows)]

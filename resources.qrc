@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/AttachmentControlWidget" >
-        <file>icon.png</file>
+    <qresource prefix="/plugins/qgis_attachments" >
+        <file>icon.svg</file>
     </qresource>
 </RCC>

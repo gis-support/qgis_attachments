@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import QFileDialog
+from qgis.PyQt.QtWidgets import QFileDialog, QApplication, QDialog
 from qgis.PyQt.QtCore import QDir, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.core import QgsApplication
@@ -25,9 +25,11 @@ class LayersBackend(BackendAbstract):
                 lambda index, option='saveToDir': self.fileAction(index, option)
             ),
         ], parent=parent)
-        #Ikony są tymczasowo przekopiowane z backendu plików
         self.model = LayersModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR)
         self.connection = None
+        self.featureActionDlg = None
+        self.newFeatureAdded = None
+        self.newFeatureIds = []
         self.geopackage_path = self.parent.layer().dataProvider().dataSourceUri().split('|')[0]
 
     def setValue(self, value):
@@ -41,6 +43,19 @@ class LayersBackend(BackendAbstract):
         values = self.getFilenames(db_ids)
         self.model.insertRows(values)
 
+    def featureActionDlgAccepted(self):
+        self.newFeatureAdded = None
+        self.newFeatureIds = []
+        self.featureActionDlg = None
+
+    def featureActionDlgRejected(self):
+        cursor = self.connection.cursor()
+        for id in self.newFeatureIds:
+            cursor.execute(f"""DELETE FROM qgis_attachments WHERE id = {int(id)}""")
+        self.connection.commit()
+        cursor.close()
+        self.newFeatureIds = []
+
     def getFilenames(self, values):
         """Dodaje informacje o nazwach plików do listy id"""
         self.checkConnection()
@@ -48,8 +63,13 @@ class LayersBackend(BackendAbstract):
         values_filenames = []
         cursor = self.connection.cursor()
         for value in values:
-            query_output = cursor.execute(sql.format(value)).fetchone()
-            if len(query_output) > 0:
+            try:
+                query_output = cursor.execute(sql.format(value)).fetchone()
+            except sqlite3.OperationalError:
+                query_output = None
+            if query_output is None:
+                return []
+            elif len(query_output) > 0:
                 values_filenames.append([value, query_output[0]])
         return values_filenames
 
@@ -67,6 +87,13 @@ class LayersBackend(BackendAbstract):
             )
             return
         self.connect()
+        #Czyszczenie wpisów w bazie, jeśli tworzenie nowego obiektu nie zostanie zatwierdzone
+        if not self.featureActionDlg:
+            self.featureActionDlg = self.isFeatureActionDlgOpened()
+            if self.featureActionDlg:
+                self.newFeatureAdded = True
+                self.featureActionDlg.rejected.connect(self.featureActionDlgRejected)
+                self.featureActionDlg.accepted.connect(self.featureActionDlgAccepted)
         self.parent.widget.setFocus()
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
         files_indexes = self.saveAttachments(files)
@@ -113,7 +140,10 @@ class LayersBackend(BackendAbstract):
                 name = os.path.basename(file)
                 blob = f.read()
                 cursor.execute(sql, (name, sqlite3.Binary(blob)))
-                ids.append([str(cursor.lastrowid), name])
+                attachment_id = str(cursor.lastrowid)
+                if self.newFeatureAdded:
+                    self.newFeatureIds.append(attachment_id)
+                ids.append([attachment_id, name])
                 self.connection.commit()
         cursor.close()
         return ids
@@ -124,9 +154,13 @@ class LayersBackend(BackendAbstract):
         def saveFile(save_dir, file_data, filename=None):
             """Funkcja pomocnicza do zapisu pliku we wskazanym miejscu"""
             path = os.path.join(save_dir, filename) if filename else save_dir
-            with open(path, 'wb') as f:
-                f.write(file_data)
-            return path
+            try:
+                with open(path, 'wb') as f:
+                    f.write(file_data)
+                return path
+            except FileNotFoundError:
+                #Anulowanie zapisywania
+                return
 
         self.checkConnection()
         save_dir = ''
@@ -141,8 +175,16 @@ class LayersBackend(BackendAbstract):
         elif option == 'saveToDir':
             self.parent.widget.setFocus()
             path, _ = QFileDialog.getSaveFileName()
-            saveFile(path, file_data)
-            self.parent.bar.pushSuccess(
-                'Sukces',
-                f'Pomyślnie wyeksportowano plik {file_name}'
-            )
+            out_path = saveFile(path, file_data)
+            if out_path:
+                self.parent.bar.pushSuccess(
+                    'Sukces',
+                    f'Pomyślnie wyeksportowano plik {file_name}'
+                )
+
+    def isFeatureActionDlgOpened(self):
+        """Sprawdza czy otwarte jest okno tworzenia nowego obiektu"""
+        for obj in QApplication.instance().allWidgets():
+            if self.parent.layer().name() in obj.objectName() and isinstance(obj, QDialog): 
+                return obj
+        return False
