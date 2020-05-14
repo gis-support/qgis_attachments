@@ -18,7 +18,7 @@ class LayersBackend(BackendAbstract):
 
     def __init__(self, parent):
         super(LayersBackend, self).__init__([
-            OptionButton(QgsApplication.getThemeIcon('/mIconFolder.svg'),
+            OptionButton(QgsApplication.getThemeIcon('mActionFileNew.svg'),
                 lambda index, option='saveTemp': self.fileAction(index, option)
             ),
             OptionButton(QgsApplication.getThemeIcon('/mActionSharingExport.svg'),
@@ -174,7 +174,7 @@ class LayersBackend(BackendAbstract):
             QDesktopServices.openUrl(QUrl(f'file:///{QDir.toNativeSeparators(out_path)}'))
         elif option == 'saveToDir':
             self.parent.widget.setFocus()
-            path, _ = QFileDialog.getSaveFileName()
+            path, _ = QFileDialog.getSaveFileName(directory=file_name)
             out_path = saveFile(path, file_data)
             if out_path:
                 self.parent.bar.pushSuccess(
