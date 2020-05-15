@@ -32,6 +32,12 @@ class LayersBackend(BackendAbstract):
         self.newFeatureIds = []
         self.geopackage_path = self.parent.layer().dataProvider().dataSourceUri().split('|')[0]
 
+    #Ustawienia
+    @staticmethod
+    def isSupported(layer):
+        return True if layer.dataProvider().dataSourceUri().split('|')[0].endswith('.gpkg') else False
+
+    #Formularz
     def setValue(self, value):
         """Parsowanie tekstu do listy załączników"""
         #Wyczyszczenie listy załączników
@@ -42,41 +48,6 @@ class LayersBackend(BackendAbstract):
         #Wypełnienie lisy załączników
         values = self.getFilenames(db_ids)
         self.model.insertRows(values)
-
-    def featureActionDlgAccepted(self):
-        self.newFeatureAdded = None
-        self.newFeatureIds = []
-        self.featureActionDlg = None
-
-    def featureActionDlgRejected(self):
-        cursor = self.connection.cursor()
-        for id in self.newFeatureIds:
-            cursor.execute(f"""DELETE FROM qgis_attachments WHERE id = {int(id)}""")
-        self.connection.commit()
-        cursor.close()
-        self.newFeatureIds = []
-
-    def getFilenames(self, values):
-        """Dodaje informacje o nazwach plików do listy id"""
-        self.checkConnection()
-        sql = """SELECT name FROM qgis_attachments WHERE id = {}"""
-        values_filenames = []
-        cursor = self.connection.cursor()
-        for value in values:
-            try:
-                query_output = cursor.execute(sql.format(value)).fetchone()
-            except sqlite3.OperationalError:
-                query_output = None
-            if query_output is None:
-                return []
-            elif len(query_output) > 0:
-                values_filenames.append([value, query_output[0]])
-        return values_filenames
-
-    def checkConnection(self):
-        """Sprawdza czy istnieje połączenie z bazą, tworzy je jeśli nie istnieje"""
-        if not self.connection:
-            self.connect()
 
     def addAttachment(self):
         """Dodaje załącznik"""
@@ -118,16 +89,6 @@ class LayersBackend(BackendAbstract):
         self.model.removeRow(index.row())
         cursor.close()
         self.connection.close()
-
-    def connect(self):
-        """Tworzy połączenie z bazą danych i tabelę jeśli ta nie istnieje"""
-        self.connection = sqlite3.connect(self.geopackage_path)
-        sql = """CREATE TABLE IF NOT EXISTS qgis_attachments (
-                id INTEGER PRIMARY KEY,
-                name TEXT,
-                data BLOB
-            )"""
-        self.connection.execute(sql)
 
     def saveAttachments(self, files_list):
         """Zapisuje załączniki i zwraca listę id"""
@@ -182,6 +143,16 @@ class LayersBackend(BackendAbstract):
                     f'Pomyślnie wyeksportowano plik {file_name}'
                 )
 
+    def connect(self):
+        """Tworzy połączenie z bazą danych i tabelę jeśli ta nie istnieje"""
+        self.connection = sqlite3.connect(self.geopackage_path)
+        sql = """CREATE TABLE IF NOT EXISTS qgis_attachments (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                data BLOB
+            )"""
+        self.connection.execute(sql)
+
     def isFeatureActionDlgOpened(self):
         """Sprawdza czy otwarte jest okno tworzenia nowego obiektu"""
         for obj in QApplication.instance().allWidgets():
@@ -189,6 +160,37 @@ class LayersBackend(BackendAbstract):
                 return obj
         return False
 
-    @staticmethod
-    def isSupported(layer):
-        return True if layer.dataProvider().dataSourceUri().split('|')[0].endswith('.gpkg') else False
+    def getFilenames(self, values):
+        """Dodaje informacje o nazwach plików do listy id"""
+        self.checkConnection()
+        sql = """SELECT name FROM qgis_attachments WHERE id = {}"""
+        values_filenames = []
+        cursor = self.connection.cursor()
+        for value in values:
+            try:
+                query_output = cursor.execute(sql.format(value)).fetchone()
+            except sqlite3.OperationalError:
+                query_output = None
+            if query_output is None:
+                return []
+            elif len(query_output) > 0:
+                values_filenames.append([value, query_output[0]])
+        return values_filenames
+
+    def checkConnection(self):
+        """Sprawdza czy istnieje połączenie z bazą, tworzy je jeśli nie istnieje"""
+        if not self.connection:
+            self.connect()
+
+    def featureActionDlgAccepted(self):
+        self.newFeatureAdded = None
+        self.newFeatureIds = []
+        self.featureActionDlg = None
+
+    def featureActionDlgRejected(self):
+        cursor = self.connection.cursor()
+        for id in self.newFeatureIds:
+            cursor.execute(f"""DELETE FROM qgis_attachments WHERE id = {int(id)}""")
+        self.connection.commit()
+        cursor.close()
+        self.newFeatureIds = []
