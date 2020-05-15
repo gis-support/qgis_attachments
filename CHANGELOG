@@ -1,2 +1,8 @@
 0.1
 Sterownik do obsługi ścieżek plików
+
+0.2
+Sterownik do przechowywania załączników w bazie dla formatu Geopackage
+Poprawiony błąd zawieszający QGIS w Windows przy dodawaniu załącznika z tabeli atrybutów
+Uzupełnienie metadanych wtyczki
+Nowa ikona
