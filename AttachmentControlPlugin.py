@@ -22,6 +22,9 @@
  ***************************************************************************/
 """
 from qgis.gui import QgsGui
+from qgis.PyQt.QtWidgets import QAction, QMenu
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtCore import QUrl
 from qgis_attachments.editor.factory import AttachmentControlWidget
 
 # Initialize Qt resources from file resources.py
@@ -31,9 +34,15 @@ class AttachmentControlPlugin():
     def __init__(self, iface):
         widget = AttachmentControlWidget('QGIS Attachments')
         QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', widget)
+        self.iface = iface
 
     def initGui(self):
-        pass
+        self.documentationAction = QAction('Dokumentacja')
+        self.iface.addPluginToMenu('QGIS Attachments', self.documentationAction)
+        self.documentationAction.triggered.connect(self.openDocumentation)
 
     def unload(self):
         pass
+
+    def openDocumentation(self):
+        QDesktopServices.openUrl(QUrl("https://gis-support.pl/wtyczka-gis-support"))
