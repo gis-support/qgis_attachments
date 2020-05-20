@@ -87,7 +87,6 @@ class LayersBackend(BackendAbstract):
         else:
             value = ';'.join([v[0] for v in files_indexes]) if files_indexes else NULL
         self.parent.layer().dataProvider().changeAttributeValues({feat_id: {field_id: value}})
-        self.parent.layer().reload()
         return result
 
     def deleteAttachment(self):

@@ -15,10 +15,15 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def __init__(self, vl, fieldIdx, editor, parent):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.widget = None
+        self.layer().afterRollBack.connect(self.reloadLayer)
 
     def getBackendLabel(self):
         """Pobiera label obecnego backendu"""
         return self.backend.LABEL if self.backend else ''
+
+    def reloadLayer(self):
+        """Przeładowuje obecnie wybraną warstwę"""
+        self.layer().reload()
 
     def valid(self):
         """ Czy właściwa kontrolka została zainicjowana """
