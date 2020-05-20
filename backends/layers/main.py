@@ -83,9 +83,9 @@ class LayersBackend(BackendAbstract):
             feat_id = self.parent.formFeature().id()
         value = None
         if current_value:
-            value = current_value + ';' + ';'.join([v[0] for v in files_indexes])
+            value = current_value + ';' + ';'.join([v[0] for v in files_indexes]) if files_indexes else current_value
         else:
-            value = ';'.join([v[0] for v in files_indexes])
+            value = ';'.join([v[0] for v in files_indexes]) if files_indexes else NULL
         self.parent.layer().dataProvider().changeAttributeValues({feat_id: {field_id: value}})
         self.parent.layer().reload()
         return result
@@ -209,11 +209,15 @@ class LayersBackend(BackendAbstract):
             self.connect()
         cursor = self.connection.cursor()
         for value in values:
-            query_output = cursor.execute(sql.format(value)).fetchone()
-            if query_output is None:
+            try:
                 query_output = cursor.execute(sql.format(value)).fetchone()
-            elif len(query_output) > 0:
-                values_filenames.append([value, query_output[0]])
+                if query_output is None:
+                    query_output = cursor.execute(sql.format(value)).fetchone()
+                elif len(query_output) > 0:
+                    values_filenames.append([value, query_output[0]])
+            except sqlite3.OperationalError:
+                #anulowanie wyboru załącznika, value jest puste
+                continue
         cursor.close()
         return values_filenames
 
