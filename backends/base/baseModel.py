@@ -22,11 +22,12 @@ class AttachmentItem:
 class AttachmentsAbstractModel(QAbstractTableModel):
     """ Bazowy model dla listy załączników """
     
-    def __init__(self, items=[], columns=['Załącznik'], separator=';', parent=None):
+    def __init__(self, items=[], columns=['Załącznik'], separator=';', ItemClass=AttachmentItem, parent=None):
         super(AttachmentsAbstractModel, self).__init__(parent)
         self.items = items
         self.columns = columns
         self.separator = separator
+        self.ItemClass = ItemClass
     
     def rowCount(self, parent=QModelIndex()):
         return len(self.items)
@@ -47,6 +48,9 @@ class AttachmentsAbstractModel(QAbstractTableModel):
             return item.value
         elif role == Qt.DecorationRole:
             icon = icons_db.icon( QFileInfo(item.value) )
+            if icon.isNull():
+                #Brak ikony dla danego rozszerzenie, zwracamy domyślną ikonę dla plików
+                icon = icons_db.icon(QFileIconProvider.File)
             return icon
         elif role == Qt.UserRole:
             return item
@@ -56,7 +60,7 @@ class AttachmentsAbstractModel(QAbstractTableModel):
             position = self.rowCount()
         self.beginInsertRows(parent, position, position + len(rows) - 1)
         for i, item in enumerate(rows):
-            self.items.insert(position+i, AttachmentItem(item))
+            self.items.insert(position+i, self.ItemClass(item))
         #Sprawdzamy czy nie została przekroczona max ilośc znaków w polu
         if max_length>0 and len(self.serialize())>max_length:
             del self.items[position:position+len(rows)]

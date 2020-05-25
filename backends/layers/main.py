@@ -1,9 +1,10 @@
 from qgis.PyQt.QtWidgets import QFileDialog, QApplication, QDialog
-from qgis.PyQt.QtCore import QDir, QUrl
+from qgis.PyQt.QtCore import QDir, QUrl, Qt
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.core import QgsApplication, NULL
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
-from qgis_attachments.backends.layers.model import LayersModel
+from qgis_attachments.backends.base.baseModel import AttachmentsAbstractModel
+from qgis_attachments.backends.layers.model import LayersAttachmentItem
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 import subprocess
 import tempfile
@@ -24,7 +25,7 @@ class LayersBackend(BackendAbstract):
                 lambda index, option='saveToDir': self.fileAction(index, option)
             ),
         ], parent=parent)
-        self.model = LayersModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR)
+        self.model = AttachmentsAbstractModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR, ItemClass=LayersAttachmentItem)
         self.connection = None
         '''
         self.featureActionDlg = None
@@ -84,13 +85,10 @@ class LayersBackend(BackendAbstract):
             self.connect()
         selected = self.parent.widget.tblAttachments.selectedIndexes()
         if len(selected) < 1:
-            self.parent.bar.pushCritical(
-                'Błąd',
-                'Nie wybrano obiektów do usunięcia'
-            )
             return
         index = selected[0]
-        value_to_delete = self.model.data(index, field='id')
+        item = self.model.data(index, Qt.UserRole)
+        value_to_delete = item.id
         sql = """DELETE FROM qgis_attachments where id = {}"""
         cursor = self.connection.cursor()
         cursor.execute(sql.format(value_to_delete))
@@ -101,6 +99,7 @@ class LayersBackend(BackendAbstract):
         feature = self.getFeature()
         self.parent.layer().dataProvider().changeAttributeValues({feature.id(): {field_id: self.model.serialize()}})
         cursor.close()
+        return True
 
     def saveAttachments(self, files_list):
         """Zapisuje załączniki i zwraca listę id"""
@@ -143,7 +142,8 @@ class LayersBackend(BackendAbstract):
         save_dir = ''
         sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
         cursor = self.connection.cursor()
-        file_name, file_data = cursor.execute(sql.format(self.model.data(index, field='id'))).fetchone()
+        item = self.model.data(index, Qt.UserRole)
+        file_name, file_data = cursor.execute(sql.format(item.id)).fetchone()
         cursor.close()
         if option == 'saveTemp':
             path = tempfile.gettempdir()

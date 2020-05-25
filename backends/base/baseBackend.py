@@ -30,9 +30,8 @@ class BackendAbstract:
 
     @staticmethod
     def isSupported(layer):
-        """ Sprawdza czy dana warstwa jest wspierana przez sterownik """"
+        """ Sprawdza czy dana warstwa jest wspierana przez sterownik """
         return True
-
 
     def warnings(self, layer, fieldIdx):
         return []

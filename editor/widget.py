@@ -92,13 +92,21 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def addAttachment(self):
         """ Dodanie załącznika """
         result = self.backend.addAttachment()
-        if result:
-            self.emitValueChanged()
+        # if result:
+        #     self.emitValueChanged()
     
     def deleteAttachment(self):
         """ Usunięcie załącznika """
+        selected = self.widget.tblAttachments.selectedIndexes()
+        if len(selected) < 1:
+            self.bar.pushWarning(
+                'Uwaga',
+                'Nie wybrano obiektów do usunięcia'
+            )
+            return
         result = QMessageBox.question(self.widget, 'Usuwanie', 'Usunąć wybranny załącznik z listy?')
         if result == QMessageBox.No:
             return
-        self.backend.deleteAttachment()
-        self.emitValueChanged()
+        result = self.backend.deleteAttachment()
+        # if result:
+        #     self.emitValueChanged()
