@@ -1,11 +1,10 @@
 from qgis.PyQt.QtWidgets import QFileDialog, QApplication, QDialog
 from qgis.PyQt.QtCore import QDir, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, NULL
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.layers.model import LayersModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
-from qgis.core import NULL
 import subprocess
 import tempfile
 import sqlite3
@@ -75,18 +74,8 @@ class LayersBackend(BackendAbstract):
         result = self.model.insertRows(files_indexes, max_length=self.parent.field().length())
         
         field_id = self.parent.fieldIdx()
-        try:
-            current_value = self.parent.context().formFeature().attribute(field_id)
-            feat_id = self.parent.context().formFeature().id()
-        except KeyError:
-            current_value = self.parent.formFeature().attribute(field_id)
-            feat_id = self.parent.formFeature().id()
-        value = None
-        if current_value:
-            value = current_value + ';' + ';'.join([v[0] for v in files_indexes]) if files_indexes else current_value
-        else:
-            value = ';'.join([v[0] for v in files_indexes]) if files_indexes else NULL
-        self.parent.layer().dataProvider().changeAttributeValues({feat_id: {field_id: value}})
+        feature = self.getFeature()
+        self.parent.layer().dataProvider().changeAttributeValues({feature.id(): {field_id: self.model.serialize()}})
         return result
 
     def deleteAttachment(self):
@@ -109,19 +98,8 @@ class LayersBackend(BackendAbstract):
         self.model.removeRow(index.row())
 
         field_id = self.parent.fieldIdx()
-        try:
-            current_value = self.parent.context().formFeature().attribute(field_id)
-            feat_id = self.parent.context().formFeature().id()
-        except KeyError:
-            current_value = self.parent.formFeature().attribute(field_id)
-            feat_id = self.parent.formFeature().id()
-        if len(current_value) > 1:
-            value = ';'.join([v for v in current_value.split(';') if v != value_to_delete])
-        elif len(current_value) == 1:
-            value = (current_value[0])
-        else:
-            value = NULL
-        self.parent.layer().dataProvider().changeAttributeValues({feat_id: {field_id: value}})
+        feature = self.getFeature()
+        self.parent.layer().dataProvider().changeAttributeValues({feature.id(): {field_id: self.model.serialize()}})
         cursor.close()
 
     def saveAttachments(self, files_list):

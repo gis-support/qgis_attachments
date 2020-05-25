@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from qgis.core import NULL
+from qgis.gui import QgsAttributeEditorContext
 from qgis_attachments.backends.base.baseDelegates import OptionButtonsDelegate
 
 class BackendAbstract:
@@ -26,6 +27,12 @@ class BackendAbstract:
     
     def setConfig(self, config):
         pass
+
+    @staticmethod
+    def isSupported(layer):
+        """ Sprawdza czy dana warstwa jest wspierana przez sterownik """"
+        return True
+
 
     def warnings(self, layer, fieldIdx):
         return []
@@ -60,7 +67,9 @@ class BackendAbstract:
             column_width = buttons.columnWidth()
             table.setColumnWidth(self.options_column, column_width)
             table.horizontalHeader().setMinimumSectionSize( column_width )
-
-    @staticmethod
-    def isSupported(layer):
-        return True
+    
+    def getFeature(self):
+        """ Zwraca edytowany obiekt przestrzenny """
+        if self.parent.context().formMode()==QgsAttributeEditorContext.Popup:
+            return self.parent.context().formFeature()
+        return self.parent.formFeature()
