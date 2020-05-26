@@ -1,16 +1,18 @@
 # coding: utf-8
 
+from qgis.PyQt.QtCore import QObject
 from qgis.core import NULL
 from qgis.gui import QgsAttributeEditorContext
 from qgis_attachments.backends.base.baseDelegates import OptionButtonsDelegate
 
-class BackendAbstract:
+class BackendAbstract(QObject):
     """ Klasa bazowa dla różnych typów sterowników dla załączników """
 
     SEPARATOR = ';'
     DESCRIPTION = ''
 
     def __init__(self, options=[], options_column=0, parent=None):
+        super(BackendAbstract, self).__init__(parent)
         #Lista opcji dla załącznika
         self.options = options
         #W której kolumnie mają znaleźć się opcje

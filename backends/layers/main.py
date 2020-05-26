@@ -10,6 +10,34 @@ import subprocess
 import tempfile
 import sqlite3
 import os
+from collections import defaultdict
+from itertools import chain
+import json
+
+def nested_dict(func):
+    return defaultdict( func )
+dict_add = nested_dict(lambda: defaultdict(list) )
+dict_delete = nested_dict(lambda: defaultdict(list) )
+
+class AttachmentsBuffer:
+    
+    #Struktura klucz słowników: warstwa -> pole -> obiekt -> dane
+    added = defaultdict( lambda:dict_add )
+    deleted = defaultdict( lambda: dict_delete )
+
+    def getFeatures(self, layer, field_id):
+        """ Zwraca obiekty przestrzenne danej warstwy, które zostały zmodyfikowane """
+        added = self.added.get( layer.id(), {} ).get( field_id, {} )
+        deleted = self.deleted.get( layer.id(), {} ).get( field_id, {} )
+        fids = set( chain(added.keys(), deleted.keys()))
+        return { f.id():f for f in layer.getFeatures(list(fids)) }
+    
+    def clearLayer(self, layer_id, field_id):
+        """ Czyszczenie bufora dla warstwy i pola """
+        self.added[layer_id][field_id].clear()
+        self.deleted[layer_id][field_id].clear()
+
+buffer = AttachmentsBuffer()
 
 class LayersBackend(BackendAbstract):
 
@@ -33,6 +61,58 @@ class LayersBackend(BackendAbstract):
         self.newFeatureIds = []
         '''
         self.geopackage_path = self.parent.layer().dataProvider().dataSourceUri().split('|')[0]
+        self.parent.layer().beforeCommitChanges.connect( self.sendData )
+        self.parent.layer().afterRollBack.connect( self.rollbackData )
+    
+    def __del__(self):
+        self.parent.layer().beforeCommitChanges.disconnect( self.sendData )
+        self.parent.layer().afterRollBack.disconnect( self.rollbackData )
+
+    def sendData(self, *args, **kwargs):
+        layer = self.sender()
+        field_id = self.parent.fieldIdx()
+        to_add = buffer.added[layer.id()][field_id]
+        to_delete = buffer.deleted[layer.id()][field_id]
+        deleted = []
+        for fid, feature in buffer.getFeatures(layer, field_id).items():
+            #Dodawane załączniki
+            added = to_add.pop(fid)
+            files = [ f[1] for f in added ]
+            files_indexes = [ str(fid) for fid in self.saveAttachments(files) ]
+            
+            #Usuwanie załączniki
+            deleted.extend( to_delete.pop(feature.id(), []) )
+            if feature[field_id]:
+                #Aktualne wartości z pominięciem dodanych i usuniętych załączników
+                current_values = [ v for v in feature[field_id].split(self.SEPARATOR) if v!='-1' and v not in deleted ]
+            else:
+                # NULL
+                current_values = []
+            #Scalenie niezmienionych załączników i dodanych
+            values = self.SEPARATOR.join( chain(current_values, files_indexes) ) or NULL
+            
+            layer.changeAttributeValue(feature.id(), field_id, values)
+
+        #Czyszczenie ewentualnych pozostałości w buforze
+        buffer.clearLayer( layer.id(), field_id )
+        layer.reload()
+
+        if not deleted:
+            return
+
+        if not self.connection:
+            self.connect()
+
+        sql = """DELETE FROM qgis_attachments where id IN ({})""".format(','.join(deleted))
+        cursor = self.connection.cursor()
+        cursor.execute(sql)
+        self.connection.commit()
+        cursor.close()
+    
+    def rollbackData(self):
+        layer = self.sender()
+        buffer.clearLayer( layer.id(), self.parent.fieldIdx() )
+        layer.reload()
 
     #Ustawienia
     @staticmethod
@@ -49,7 +129,12 @@ class LayersBackend(BackendAbstract):
         db_ids = value.split( self.SEPARATOR )
         #Wypełnienie lisy załączników
         values = self.getFilenames(db_ids)
+        layer = self.parent.layer()
+        feature = self.getFeature()
         self.model.insertRows(values)
+        #Dodane i niezapisane załączniki
+        items = buffer.added[layer.id()][self.parent.fieldIdx()][feature.id()]
+        self.model.insertRows( items, max_length=self.parent.field().length())
 
     def addAttachment(self):
         """Dodaje załącznik"""
@@ -71,34 +156,30 @@ class LayersBackend(BackendAbstract):
         '''
         self.parent.widget.setFocus()
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
-        files_indexes = self.saveAttachments(files)
-        result = self.model.insertRows(files_indexes, max_length=self.parent.field().length())
         
-        field_id = self.parent.fieldIdx()
         feature = self.getFeature()
-        self.parent.layer().dataProvider().changeAttributeValues({feature.id(): {field_id: self.model.serialize()}})
+
+        #Nowy załącznik, niezapisane załączniki mają id -1
+        items = [ ['-1', f] for f in files ]
+        buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].extend( items )
+        result = self.model.insertRows( items, max_length=self.parent.field().length())
+
         return result
 
     def deleteAttachment(self):
         """Usuwa załącznik"""
-        if not self.connection:
-            self.connect()
         selected = self.parent.widget.tblAttachments.selectedIndexes()
         if len(selected) < 1:
             return
         index = selected[0]
         item = self.model.data(index, Qt.UserRole)
+        item.to_delete = True
+        self.parent.widget.tblAttachments.model().dataChanged.emit( index, index )
         value_to_delete = item.id
-        sql = """DELETE FROM qgis_attachments where id = {}"""
-        cursor = self.connection.cursor()
-        cursor.execute(sql.format(value_to_delete))
-        self.connection.commit()
         self.model.removeRow(index.row())
 
-        field_id = self.parent.fieldIdx()
         feature = self.getFeature()
-        self.parent.layer().dataProvider().changeAttributeValues({feature.id(): {field_id: self.model.serialize()}})
-        cursor.close()
+        buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( value_to_delete )
         return True
 
     def saveAttachments(self, files_list):
@@ -118,7 +199,7 @@ class LayersBackend(BackendAbstract):
                 if self.newFeatureAdded:
                     self.newFeatureIds.append(attachment_id)
                 '''
-                ids.append([attachment_id, name])
+                ids.append(attachment_id)
         self.connection.commit()
         cursor.close()
         return ids

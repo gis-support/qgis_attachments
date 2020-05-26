@@ -15,15 +15,11 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def __init__(self, vl, fieldIdx, editor, parent):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.widget = None
-        self.layer().afterRollBack.connect(self.reloadLayer)
 
     def getBackendLabel(self):
         """Pobiera label obecnego backendu"""
         return self.backend.LABEL if self.backend else ''
 
-    def reloadLayer(self):
-        """Przeładowuje obecnie wybraną warstwę"""
-        self.layer().reload()
 
     def valid(self):
         """ Czy właściwa kontrolka została zainicjowana """
@@ -92,8 +88,8 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def addAttachment(self):
         """ Dodanie załącznika """
         result = self.backend.addAttachment()
-        # if result:
-        #     self.emitValueChanged()
+        if result:
+            self.emitValueChanged()
     
     def deleteAttachment(self):
         """ Usunięcie załącznika """
@@ -104,9 +100,6 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
                 'Nie wybrano obiektów do usunięcia'
             )
             return
-        result = QMessageBox.question(self.widget, 'Usuwanie', 'Usunąć wybranny załącznik z listy?')
-        if result == QMessageBox.No:
-            return
         result = self.backend.deleteAttachment()
-        # if result:
-        #     self.emitValueChanged()
+        if result:
+            self.emitValueChanged()

@@ -2,6 +2,7 @@
 
 from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex, QFileInfo
 from qgis.PyQt.QtWidgets import QFileIconProvider
+from qgis.PyQt.QtGui import QBrush
 
 icons_db = QFileIconProvider()
 
@@ -52,6 +53,9 @@ class AttachmentsAbstractModel(QAbstractTableModel):
                 #Brak ikony dla danego rozszerzenie, zwracamy domyślną ikonę dla plików
                 icon = icons_db.icon(QFileIconProvider.File)
             return icon
+        elif role == Qt.BackgroundRole:
+            if item.id == '-1':
+                return QBrush(Qt.green)
         elif role == Qt.UserRole:
             return item
     
