@@ -8,6 +8,7 @@ from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QVBoxLayout,
     QSizePolicy, QPushButton, QSpacerItem, QHBoxLayout)
 from qgis_attachments.backends.registry import backends_registry
+from qgis_attachments.translator import translate
 
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     """ Kontrolka formularza """

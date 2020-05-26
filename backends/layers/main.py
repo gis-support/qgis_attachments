@@ -6,6 +6,7 @@ from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.base.baseModel import AttachmentsAbstractModel
 from qgis_attachments.backends.layers.model import LayersAttachmentItem
 from qgis_attachments.backends.base.baseDelegates import OptionButton
+from qgis_attachments.translator import translate
 import subprocess
 import tempfile
 import sqlite3
@@ -41,8 +42,9 @@ buffer = AttachmentsBuffer()
 
 class LayersBackend(BackendAbstract):
 
-    LABEL = 'Geopackage'
-    DESCRIPTION = 'Przechowywanie załączników w geopaczce'
+    LABEL = translate('LayersBackend', 'Geopaczka')
+    NAME = 'layers'
+    DESCRIPTION = translate('LayersBackend', 'Przechowuje załączniki w geopaczce.')
 
     def __init__(self, parent):
         super(LayersBackend, self).__init__([
@@ -53,7 +55,7 @@ class LayersBackend(BackendAbstract):
                 lambda index, option='saveToDir': self.fileAction(index, option)
             ),
         ], parent=parent)
-        self.model = AttachmentsAbstractModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR, ItemClass=LayersAttachmentItem)
+        self.model = AttachmentsAbstractModel(columns=[translate('LayersBackend', 'Opcje'), translate('LayersBackend', 'Pliki')], separator=self.SEPARATOR, ItemClass=LayersAttachmentItem)
         self.connection = None
         '''
         self.featureActionDlg = None
@@ -138,12 +140,6 @@ class LayersBackend(BackendAbstract):
 
     def addAttachment(self):
         """Dodaje załącznik"""
-        if not self.geopackage_path.endswith('.gpkg'):
-            self.parent.bar.pushCritical(
-                'Błąd',
-                'Wybrana warstwa nie znajduje się w geopaczce'
-            )
-            return
         self.connect()
         '''
         #Czyszczenie wpisów w bazie, jeśli tworzenie nowego obiektu nie zostanie zatwierdzone
@@ -236,8 +232,11 @@ class LayersBackend(BackendAbstract):
             out_path = saveFile(path, file_data)
             if out_path:
                 self.parent.bar.pushSuccess(
-                    'Sukces',
-                    f'Pomyślnie wyeksportowano plik {file_name}'
+                    translate('LayersBackend', 'Sukces'),
+                    '{} {}'.format(
+                        translate('LayersBackend', 'Pomyślnie wyeksportowano plik'),
+                        file_name
+                    )
                 )
 
     def connect(self):

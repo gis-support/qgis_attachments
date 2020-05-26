@@ -9,6 +9,7 @@ from qgis.gui import QgsFileWidget
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.files.model import FilesModel
 from qgis_attachments.backends.base.baseDelegates import OptionButton
+from qgis_attachments.translator import translate
 from pathlib import Path
 import sys
 import subprocess
@@ -26,10 +27,12 @@ if sys.platform.startswith('linux'):
 class FilesBackend(BackendAbstract):
     """ Przechowuje ścieżki plików w tabeli atrybutów """
 
-    #Nazwa wyświetlana na liście (unikalna)
-    LABEL = 'Mój komputer'
+    #Nazwa backendu (unikalna)
+    NAME = 'files'
+    #Label wyświetlany w ustawieniach
+    LABEL = translate('FilesBackend', 'Mój komputer')
     #Opis
-    DESCRIPTION = 'Przechowuje ścieżki do plików z dysku lokalnego.'
+    DESCRIPTION = translate('FilesBackend', 'Przechowuje ścieżki do plików z dysku lokalnego.')
 
     def __init__(self, parent):
         super(FilesBackend, self).__init__([
@@ -37,7 +40,7 @@ class FilesBackend(BackendAbstract):
             OptionButton(QgsApplication.getThemeIcon('/mIconFile.svg'), self.openFile),
         ], parent=parent)
         #Utworzenie modelu dla listy załączników
-        self.model = FilesModel(columns=['Opcje', 'Pliki'], separator=self.SEPARATOR)
+        self.model = FilesModel(columns=[translate('FilesBackend', 'Opcje'), translate('FilesBackend', 'Pliki')], separator=self.SEPARATOR)
 
     # KONFIGURACJA
 
@@ -75,7 +78,13 @@ class FilesBackend(BackendAbstract):
         field = layer.fields().field( fieldIdx )
         warnings = []
         if field.length()>0:
-            warnings.append( f'Wskazane pole może przechowywać do {field.length()} znaków co ogranicza liczbę przechowywanych załączników.' )
+            warnings.append(
+                '{} {} {}'.format(
+                    translate('FilesBackend', 'Wskazane pole może przechowywać do'),
+                    field.length(),
+                    translate('FilesBackend', 'znaków co ogranicza liczbę przechowywanych załączników.')
+                )
+            )
         return warnings
 
     # FORMULARZ
@@ -86,7 +95,7 @@ class FilesBackend(BackendAbstract):
         # Rozwiązanie problemu z crashowaniem na Windows
         # https://stackoverflow.com/a/38456379
         self.parent.widget.setFocus()
-        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
+        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, translate('FilesBackend', 'Wybierz załączniki'))
         if not files:
             #Nie wybrano plików
             return
@@ -108,8 +117,13 @@ class FilesBackend(BackendAbstract):
         if not result:
             #Nie dodano załączników ponieważ przekroczono max długość pola
             field = self.parent.field()
-            self.parent.bar.pushCritical( 'Błąd',
-                f'Nie można dodać załączników, przekroczono maksymalną długość znaków ({field.length()}).')
+            self.parent.bar.pushCritical(
+                translate('FilesBackend', 'Błąd'),
+                '{} {}.'.format(
+                    translate('FilesBackend', 'Nie można dodać załączników, przekroczono maksymalną długość znaków'),
+                    field.length()
+                )
+            )
         return result
     
     def deleteAttachment(self):
@@ -138,7 +152,14 @@ class FilesBackend(BackendAbstract):
         file_path = self.getAbsoluteFilePath( index.data() )
         if not file_path.exists():
             #Katalog nie istnieje
-            self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
+            self.parent.bar.pushCritical(
+                translate('FilesBackend', 'Błąd'),
+                '{} {} {}'.format(
+                    translate('FilesBackend', 'Plik'),
+                    file_path.absoluteFilePath(),
+                    translate('FilesBackend', 'nie istnieje.')
+                )
+            )
             return
         file_dir = QDir.toNativeSeparators(file_path.absoluteFilePath())
         if sys.platform == 'win32':
@@ -156,7 +177,14 @@ class FilesBackend(BackendAbstract):
         file_path = self.getAbsoluteFilePath( index.data() )
         if not file_path.exists():
             #Plik nie istenieje
-            self.parent.bar.pushCritical( 'Błąd', f"Plik '{file_path.absoluteFilePath()}' nie istnieje." )
+            self.parent.bar.pushCritical(
+                translate('FilesBackend', 'Błąd'),
+                '{} {} {}'.format(
+                    translate('FilesBackend', 'Plik'),
+                    file_path.absoluteFilePath(),
+                    translate('FilesBackend', 'nie istnieje.')
+                )
+            )
             return
         #Uruchomienie pliku w domyślnej aplikacji
         QDesktopServices.openUrl( QUrl(f'file:///{QDir.toNativeSeparators(file_path.absoluteFilePath())}') )
