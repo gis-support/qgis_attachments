@@ -8,6 +8,7 @@ from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QVBoxLayout,
     QSizePolicy, QPushButton, QSpacerItem, QHBoxLayout)
 from qgis_attachments.backends.registry import backends_registry
+from qgis_attachments.translator import translate
 
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     """ Kontrolka formularza """
@@ -97,7 +98,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     
     def deleteAttachment(self):
         """ Usunięcie załącznika """
-        result = QMessageBox.question(self.widget, 'Usuwanie', 'Usunąć wybranny załącznik z listy?')
+        result = QMessageBox.question(self.widget, translate('wrapper', 'Usuwanie'), translate('wrapper', 'Usunąć wybranny załącznik z listy?'))
         if result == QMessageBox.No:
             return
         self.backend.deleteAttachment()

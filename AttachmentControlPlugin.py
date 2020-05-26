@@ -37,7 +37,7 @@ class AttachmentControlPlugin():
         self.iface = iface
 
     def initGui(self):
-        self.documentationAction = QAction('Dokumentacja')
+        self.documentationAction = QAction(translate('AttachmentControlPlugin', 'Dokumentacja'))
         self.iface.addPluginToMenu('QGIS Attachments', self.documentationAction)
         self.documentationAction.triggered.connect(self.openDocumentation)
 
@@ -45,4 +45,4 @@ class AttachmentControlPlugin():
         pass
 
     def openDocumentation(self):
-        QDesktopServices.openUrl(QUrl("https://gis-support.pl/wtyczka-gis-support"))
+        QDesktopServices.openUrl(QUrl(translate('AttachmentControlPlugin', 'https://gis-support.pl/qgis-attachements/')))
