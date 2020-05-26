@@ -7,6 +7,7 @@ from qgis_attachments.backends.base.baseModel import AttachmentsAbstractModel
 from qgis_attachments.backends.layers.model import LayersAttachmentItem
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 from qgis_attachments.translator import translate
+from contextlib import contextmanager
 import subprocess
 import tempfile
 import sqlite3
@@ -55,66 +56,31 @@ class LayersBackend(BackendAbstract):
                 lambda index, option='saveToDir': self.fileAction(index, option)
             ),
         ], parent=parent)
-        self.model = AttachmentsAbstractModel(columns=[translate('LayersBackend', 'Opcje'), translate('LayersBackend', 'Pliki')], separator=self.SEPARATOR, ItemClass=LayersAttachmentItem)
-        self.connection = None
-        '''
-        self.featureActionDlg = None
-        self.newFeatureAdded = None
-        self.newFeatureIds = []
-        '''
+        self.model = AttachmentsAbstractModel(
+                columns=[translate('LayersBackend', 'Opcje'), translate('LayersBackend', 'Pliki')],
+                separator=self.SEPARATOR,
+                ItemClass=LayersAttachmentItem)
         self.geopackage_path = self.parent.layer().dataProvider().dataSourceUri().split('|')[0]
-        self.parent.layer().beforeCommitChanges.connect( self.sendData )
+        self.parent.layer().beforeCommitChanges.connect( self.saveData )
         self.parent.layer().afterRollBack.connect( self.rollbackData )
     
     def __del__(self):
-        self.parent.layer().beforeCommitChanges.disconnect( self.sendData )
+        self.parent.layer().beforeCommitChanges.disconnect( self.saveData )
         self.parent.layer().afterRollBack.disconnect( self.rollbackData )
-
-    def sendData(self, *args, **kwargs):
-        layer = self.sender()
-        field_id = self.parent.fieldIdx()
-        to_add = buffer.added[layer.id()][field_id]
-        to_delete = buffer.deleted[layer.id()][field_id]
-        deleted = []
-        for fid, feature in buffer.getFeatures(layer, field_id).items():
-            #Dodawane załączniki
-            added = to_add.pop(fid)
-            files = [ f[1] for f in added ]
-            files_indexes = [ str(fid) for fid in self.saveAttachments(files) ]
-            
-            #Usuwanie załączniki
-            deleted.extend( to_delete.pop(feature.id(), []) )
-            if feature[field_id]:
-                #Aktualne wartości z pominięciem dodanych i usuniętych załączników
-                current_values = [ v for v in feature[field_id].split(self.SEPARATOR) if v!='-1' and v not in deleted ]
-            else:
-                # NULL
-                current_values = []
-            #Scalenie niezmienionych załączników i dodanych
-            values = self.SEPARATOR.join( chain(current_values, files_indexes) ) or NULL
-            
-            layer.changeAttributeValue(feature.id(), field_id, values)
-
-        #Czyszczenie ewentualnych pozostałości w buforze
-        buffer.clearLayer( layer.id(), field_id )
-        layer.reload()
-
-        if not deleted:
-            return
-
-        if not self.connection:
-            self.connect()
-
-        sql = """DELETE FROM qgis_attachments where id IN ({})""".format(','.join(deleted))
-        cursor = self.connection.cursor()
-        cursor.execute(sql)
-        self.connection.commit()
-        cursor.close()
     
-    def rollbackData(self):
-        layer = self.sender()
-        buffer.clearLayer( layer.id(), self.parent.fieldIdx() )
-        layer.reload()
+    @contextmanager
+    def connection(self):
+        """ Połączenie z bazą sqlite """
+        con = sqlite3.connect(self.geopackage_path)
+        # Dodanie tabeli na załączniki, jeśli nie istnieje
+        sql = """CREATE TABLE IF NOT EXISTS qgis_attachments (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                data BLOB
+            )"""
+        con.execute(sql)
+        yield con
+        con.close()
 
     #Ustawienia
     @staticmethod
@@ -140,16 +106,6 @@ class LayersBackend(BackendAbstract):
 
     def addAttachment(self):
         """Dodaje załącznik"""
-        self.connect()
-        '''
-        #Czyszczenie wpisów w bazie, jeśli tworzenie nowego obiektu nie zostanie zatwierdzone
-        if not self.featureActionDlg:
-            self.featureActionDlg = self.isFeatureActionDlgOpened()
-            if self.featureActionDlg:
-                self.newFeatureAdded = True
-                self.featureActionDlg.rejected.connect(self.featureActionDlgRejected)
-                self.featureActionDlg.accepted.connect(self.featureActionDlgAccepted)
-        '''
         self.parent.widget.setFocus()
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
         
@@ -178,26 +134,66 @@ class LayersBackend(BackendAbstract):
         buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( value_to_delete )
         return True
 
+    def saveData(self):
+        """ Zapis załączników """
+        layer = self.sender()
+        field_id = self.parent.fieldIdx()
+        to_add = buffer.added[layer.id()][field_id]
+        to_delete = buffer.deleted[layer.id()][field_id]
+        deleted = []
+        for fid, feature in buffer.getFeatures(layer, field_id).items():
+            #Dodawane załączniki
+            added = to_add.pop(fid)
+            files = [ f[1] for f in added ]
+            files_indexes = [ str(fid) for fid in self.saveAttachments(files) ]
+            
+            #Usuwanie załączniki
+            deleted.extend( to_delete.pop(feature.id(), []) )
+            if feature[field_id]:
+                #Aktualne wartości z pominięciem dodanych i usuniętych załączników
+                current_values = [ v for v in feature[field_id].split(self.SEPARATOR) if v!='-1' and v not in deleted ]
+            else:
+                # NULL
+                current_values = []
+            #Scalenie niezmienionych załączników i dodanych
+            values = self.SEPARATOR.join( chain(current_values, files_indexes) ) or NULL
+            #Zapisanie zmian w obiekcie
+            layer.changeAttributeValue(feature.id(), field_id, values)
+
+        #Czyszczenie ewentualnych pozostałości w buforze
+        buffer.clearLayer( layer.id(), field_id )
+        #Przeładowanie danych warstwy
+        layer.reload()
+
+        if not deleted:
+            return
+        #Skasowanie usuniętych załączników z bazy
+        with self.connection() as connection:
+            sql = """DELETE FROM qgis_attachments where id IN ({})""".format(','.join(deleted))
+            connection.execute(sql)
+            connection.commit()
+    
+    def rollbackData(self):
+        """ Koniec edycji bez zapisanych zmian """
+        layer = self.sender()
+        buffer.clearLayer( layer.id(), self.parent.fieldIdx() )
+        layer.reload()
+
     def saveAttachments(self, files_list):
         """Zapisuje załączniki i zwraca listę id"""
-        if not self.connection:
-            self.connect()
-        sql = """INSERT INTO qgis_attachments (name, data) VALUES (?, ?)"""
-        cursor = self.connection.cursor()
-        ids = []
-        for file in files_list:
-            with open(file, 'rb') as f:
-                name = os.path.basename(file)
-                blob = f.read()
-                cursor.execute(sql, (name, sqlite3.Binary(blob)))
-                attachment_id = str(cursor.lastrowid)
-                '''
-                if self.newFeatureAdded:
-                    self.newFeatureIds.append(attachment_id)
-                '''
-                ids.append(attachment_id)
-        self.connection.commit()
-        cursor.close()
+        with self.connection() as connection:
+            sql = """INSERT INTO qgis_attachments (name, data) VALUES (?, ?)"""
+            cursor = connection.cursor()
+            ids = []
+            for file in files_list:
+                with open(file, 'rb') as f:
+                    name = os.path.basename(file)
+                    blob = f.read()
+                    cursor.execute(sql, (name, sqlite3.Binary(blob)))
+                    attachment_id = str(cursor.lastrowid)
+                    ids.append(attachment_id)
+            connection.commit()
+            cursor.close()
         return ids
 
     def fileAction(self, index, option):
@@ -214,14 +210,12 @@ class LayersBackend(BackendAbstract):
                 #Anulowanie zapisywania
                 return
 
-        if not self.connection:
-            self.connect()
+        with self.connection() as connection:
+            sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
+            item = self.model.data(index, Qt.UserRole)
+            file_name, file_data = connection.execute(sql.format(item.id)).fetchone()
+
         save_dir = ''
-        sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
-        cursor = self.connection.cursor()
-        item = self.model.data(index, Qt.UserRole)
-        file_name, file_data = cursor.execute(sql.format(item.id)).fetchone()
-        cursor.close()
         if option == 'saveTemp':
             path = tempfile.gettempdir()
             out_path = saveFile(path, file_data, file_name)
@@ -239,56 +233,19 @@ class LayersBackend(BackendAbstract):
                     )
                 )
 
-    def connect(self):
-        """Tworzy połączenie z bazą danych i tabelę jeśli ta nie istnieje"""
-        self.connection = sqlite3.connect(self.geopackage_path)
-        sql = """CREATE TABLE IF NOT EXISTS qgis_attachments (
-                id INTEGER PRIMARY KEY,
-                name TEXT,
-                data BLOB
-            )"""
-        self.connection.execute(sql)
-
-    '''
-    def isFeatureActionDlgOpened(self):
-        """Sprawdza czy otwarte jest okno tworzenia nowego obiektu"""
-        for obj in QApplication.instance().allWidgets():
-            if self.parent.layer().name() in obj.objectName() and isinstance(obj, QDialog): 
-                return obj
-        return False
-    '''
-
     def getFilenames(self, values):
         """Dodaje informacje o nazwach plików do listy id"""
         sql = """SELECT name FROM qgis_attachments WHERE id = {}"""
         values_filenames = []
-        if not self.connection:
-            self.connect()
-        cursor = self.connection.cursor()
-        for value in values:
-            try:
-                query_output = cursor.execute(sql.format(value)).fetchone()
-                if query_output is None:
-                    query_output = cursor.execute(sql.format(value)).fetchone()
-                elif len(query_output) > 0:
-                    values_filenames.append([value, query_output[0]])
-            except sqlite3.OperationalError:
-                #anulowanie wyboru załącznika, value jest puste
-                continue
-        cursor.close()
+        with self.connection() as connection:
+            for value in values:
+                try:
+                    query_output = connection.execute(sql.format(value)).fetchone()
+                    if query_output is None:
+                        query_output = connection.execute(sql.format(value)).fetchone()
+                    elif len(query_output) > 0:
+                        values_filenames.append([value, query_output[0]])
+                except sqlite3.OperationalError:
+                    #anulowanie wyboru załącznika, value jest puste
+                    continue
         return values_filenames
-
-'''
-    def featureActionDlgAccepted(self):
-        self.newFeatureAdded = None
-        self.newFeatureIds = []
-        self.featureActionDlg = None
-
-    def featureActionDlgRejected(self):
-        cursor = self.connection.cursor()
-        for id in self.newFeatureIds:
-            cursor.execute(f"""DELETE FROM qgis_attachments WHERE id = {int(id)}""")
-        self.connection.commit()
-        cursor.close()
-        self.newFeatureIds = []
-'''

@@ -16,11 +16,13 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     def __init__(self, vl, fieldIdx, editor, parent):
         super(AttachmentControlWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.widget = None
+    
+    def __del__(self):
+        del self.widget
 
     def getBackendLabel(self):
         """Pobiera label obecnego backendu"""
         return self.backend.LABEL if self.backend else ''
-
 
     def valid(self):
         """ Czy właściwa kontrolka została zainicjowana """
