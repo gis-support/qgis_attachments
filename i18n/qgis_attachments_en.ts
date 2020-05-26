@@ -3,12 +3,12 @@
 <context>
     <name>AttachmentControlPlugin</name>
     <message>
-        <location filename="../AttachmentControlPlugin.py" line="42"/>
+        <location filename="../AttachmentControlPlugin.py" line="41"/>
         <source>Dokumentacja</source>
         <translation>Documentation</translation>
     </message>
     <message>
-        <location filename="../AttachmentControlPlugin.py" line="50"/>
+        <location filename="../AttachmentControlPlugin.py" line="49"/>
         <source>https://gis-support.pl/qgis-attachements/</source>
         <translation>https://gis-support.com/qgis-attachements/</translation>
     </message>
@@ -102,22 +102,22 @@
 <context encoding="UTF-8">
     <name>LayersBackend</name>
     <message>
-        <location filename="../backends/layers/main.py" line="17"/>
+        <location filename="../backends/layers/main.py" line="46"/>
         <source>Geopaczka</source>
         <translation>Geopackage</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/layers/main.py" line="19"/>
+        <location filename="../backends/layers/main.py" line="48"/>
         <source>Przechowuje załączniki w geopaczce.</source>
         <translation>Stores attachments in geopackage</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="30"/>
+        <location filename="../backends/layers/main.py" line="59"/>
         <source>Opcje</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="30"/>
+        <location filename="../backends/layers/main.py" line="59"/>
         <source>Pliki</source>
         <translation>Files</translation>
     </message>
@@ -132,27 +132,32 @@
         <translation>Deleting failed. No objects selected.</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="176"/>
+        <location filename="../backends/layers/main.py" line="229"/>
         <source>Sukces</source>
         <translation>Success</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/layers/main.py" line="176"/>
+        <location filename="../backends/layers/main.py" line="229"/>
         <source>Pomyślnie wyeksportowano plik</source>
         <translation>File exported successfully</translation>
     </message>
 </context>
 <context encoding="UTF-8">
-    <name>wrapper</name>
+    <name>Widget</name>
     <message>
-        <location filename="../editor/widget.py" line="102"/>
-        <source>Usuwanie</source>
-        <translation></translation>
+        <location filename="../editor/widget.py" line="56"/>
+        <source>Zamknij</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <location filename="../editor/widget.py" line="104"/>
+        <source>Uwaga</source>
+        <translation>Warning</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../editor/widget.py" line="102"/>
-        <source>Usunąć wybranny załącznik z listy?</source>
-        <translation></translation>
+        <location filename="../editor/widget.py" line="104"/>
+        <source>Nie wybrano obiektów do usunięcia</source>
+        <translation>Deleting failed. No objects selected.</translation>
     </message>
 </context>
 </TS>

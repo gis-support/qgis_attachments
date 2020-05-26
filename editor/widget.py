@@ -10,6 +10,8 @@ from qgis.PyQt.QtWidgets import (QMessageBox, QFrame, QVBoxLayout,
 from qgis_attachments.backends.registry import backends_registry
 from qgis_attachments.translator import translate
 
+translate_ = lambda msg: translate('Widget', msg)
+
 class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
     """ Kontrolka formularza """
 
@@ -50,7 +52,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
             btn_layout = QHBoxLayout()
             spacer = QSpacerItem(40, 5, QSizePolicy.Expanding, QSizePolicy.Minimum)
             btn_layout.addItem( spacer )
-            btnClose = QPushButton('Zamknij', frame)
+            btnClose = QPushButton(translate_('Zamknij'), frame)
             btnClose.clicked.connect( frame.close )
             btn_layout.addWidget( btnClose )
             formLayout.addLayout( btn_layout )
@@ -99,8 +101,8 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         selected = self.widget.tblAttachments.selectedIndexes()
         if len(selected) < 1:
             self.bar.pushWarning(
-                'Uwaga',
-                'Nie wybrano obiektów do usunięcia'
+                translate_('Uwaga'),
+                translate_('Nie wybrano obiektów do usunięcia')
             )
             return
         result = self.backend.deleteAttachment()

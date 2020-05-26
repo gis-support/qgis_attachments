@@ -14,6 +14,8 @@ from pathlib import Path
 import sys
 import subprocess
 
+translate_ = lambda msg: translate('FilesBackend', msg)
+
 if sys.platform.startswith('linux'):
     #Wyszukanie systemowego menedżera plików
     from shutil import which
@@ -30,9 +32,9 @@ class FilesBackend(BackendAbstract):
     #Nazwa backendu (unikalna)
     NAME = 'files'
     #Label wyświetlany w ustawieniach
-    LABEL = translate('FilesBackend', 'Mój komputer')
+    LABEL = translate_('Mój komputer')
     #Opis
-    DESCRIPTION = translate('FilesBackend', 'Przechowuje ścieżki do plików z dysku lokalnego.')
+    DESCRIPTION = translate_('Przechowuje ścieżki do plików z dysku lokalnego.')
 
     def __init__(self, parent):
         super(FilesBackend, self).__init__([
@@ -40,7 +42,7 @@ class FilesBackend(BackendAbstract):
             OptionButton(QgsApplication.getThemeIcon('/mIconFile.svg'), self.openFile),
         ], parent=parent)
         #Utworzenie modelu dla listy załączników
-        self.model = FilesModel(columns=[translate('FilesBackend', 'Opcje'), translate('FilesBackend', 'Pliki')], separator=self.SEPARATOR)
+        self.model = FilesModel(columns=[translate_('Opcje'), translate_('Pliki')], separator=self.SEPARATOR)
 
     # KONFIGURACJA
 
@@ -80,9 +82,9 @@ class FilesBackend(BackendAbstract):
         if field.length()>0:
             warnings.append(
                 '{} {} {}'.format(
-                    translate('FilesBackend', 'Wskazane pole może przechowywać do'),
+                    translate_('Wskazane pole może przechowywać do'),
                     field.length(),
-                    translate('FilesBackend', 'znaków co ogranicza liczbę przechowywanych załączników.')
+                    translate_('znaków co ogranicza liczbę przechowywanych załączników.')
                 )
             )
         return warnings
@@ -95,7 +97,7 @@ class FilesBackend(BackendAbstract):
         # Rozwiązanie problemu z crashowaniem na Windows
         # https://stackoverflow.com/a/38456379
         self.parent.widget.setFocus()
-        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, translate('FilesBackend', 'Wybierz załączniki'))
+        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, translate_('Wybierz załączniki'))
         if not files:
             #Nie wybrano plików
             return
@@ -118,9 +120,9 @@ class FilesBackend(BackendAbstract):
             #Nie dodano załączników ponieważ przekroczono max długość pola
             field = self.parent.field()
             self.parent.bar.pushCritical(
-                translate('FilesBackend', 'Błąd'),
+                translate_('Błąd'),
                 '{} {}.'.format(
-                    translate('FilesBackend', 'Nie można dodać załączników, przekroczono maksymalną długość znaków'),
+                    translate_('Nie można dodać załączników, przekroczono maksymalną długość znaków'),
                     field.length()
                 )
             )
@@ -153,11 +155,11 @@ class FilesBackend(BackendAbstract):
         if not file_path.exists():
             #Katalog nie istnieje
             self.parent.bar.pushCritical(
-                translate('FilesBackend', 'Błąd'),
+                translate_('Błąd'),
                 '{} {} {}'.format(
-                    translate('FilesBackend', 'Plik'),
+                    translate_('Plik'),
                     file_path.absoluteFilePath(),
-                    translate('FilesBackend', 'nie istnieje.')
+                    translate_('nie istnieje.')
                 )
             )
             return
@@ -178,11 +180,11 @@ class FilesBackend(BackendAbstract):
         if not file_path.exists():
             #Plik nie istenieje
             self.parent.bar.pushCritical(
-                translate('FilesBackend', 'Błąd'),
+                translate_('Błąd'),
                 '{} {} {}'.format(
-                    translate('FilesBackend', 'Plik'),
+                    translate_('Plik'),
                     file_path.absoluteFilePath(),
-                    translate('FilesBackend', 'nie istnieje.')
+                    translate_('nie istnieje.')
                 )
             )
             return

@@ -31,6 +31,8 @@ from qgis_attachments.translator import translate
 # Initialize Qt resources from file resources.py
 from .resources import *
 
+translate_ = lambda msg: translate('AttachmentControlPlugin', msg)
+
 class AttachmentControlPlugin():
     def __init__(self, iface):
         widget = AttachmentControlWidget('QGIS Attachments')
@@ -38,7 +40,7 @@ class AttachmentControlPlugin():
         self.iface = iface
 
     def initGui(self):
-        self.documentationAction = QAction(translate('AttachmentControlPlugin', 'Dokumentacja'))
+        self.documentationAction = QAction(translate_('Dokumentacja'))
         self.iface.addPluginToMenu('QGIS Attachments', self.documentationAction)
         self.documentationAction.triggered.connect(self.openDocumentation)
 
@@ -46,4 +48,4 @@ class AttachmentControlPlugin():
         pass
 
     def openDocumentation(self):
-        QDesktopServices.openUrl(QUrl(translate('AttachmentControlPlugin', 'https://gis-support.pl/qgis-attachements/')))
+        QDesktopServices.openUrl(QUrl(translate_('https://gis-support.pl/qgis-attachements/')))

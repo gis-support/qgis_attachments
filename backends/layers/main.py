@@ -16,6 +16,8 @@ from collections import defaultdict
 from itertools import chain
 import json
 
+translate_ = lambda msg: translate('LayersBackend', msg)
+
 def nested_dict(func):
     return defaultdict( func )
 dict_add = nested_dict(lambda: defaultdict(list) )
@@ -43,9 +45,9 @@ buffer = AttachmentsBuffer()
 
 class LayersBackend(BackendAbstract):
 
-    LABEL = translate('LayersBackend', 'Geopaczka')
+    LABEL = translate_('Geopaczka')
     NAME = 'layers'
-    DESCRIPTION = translate('LayersBackend', 'Przechowuje załączniki w geopaczce.')
+    DESCRIPTION = translate_('Przechowuje załączniki w geopaczce.')
 
     def __init__(self, parent):
         super(LayersBackend, self).__init__([
@@ -57,7 +59,7 @@ class LayersBackend(BackendAbstract):
             ),
         ], parent=parent)
         self.model = AttachmentsAbstractModel(
-                columns=[translate('LayersBackend', 'Opcje'), translate('LayersBackend', 'Pliki')],
+                columns=[translate_('Opcje'), translate_('Pliki')],
                 separator=self.SEPARATOR,
                 ItemClass=LayersAttachmentItem)
         self.geopackage_path = self.parent.layer().dataProvider().dataSourceUri().split('|')[0]
@@ -226,9 +228,9 @@ class LayersBackend(BackendAbstract):
             out_path = saveFile(path, file_data)
             if out_path:
                 self.parent.bar.pushSuccess(
-                    translate('LayersBackend', 'Sukces'),
+                    translate_('Sukces'),
                     '{} {}'.format(
-                        translate('LayersBackend', 'Pomyślnie wyeksportowano plik'),
+                        translate_('Pomyślnie wyeksportowano plik'),
                         file_name
                     )
                 )
