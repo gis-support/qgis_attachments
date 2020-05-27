@@ -54,7 +54,7 @@ class AttachmentsAbstractModel(QAbstractTableModel):
                 icon = icons_db.icon(QFileIconProvider.File)
             return icon
         elif role == Qt.BackgroundRole:
-            if item.id == '-1':
+            if getattr(item, 'id', None) == '-1':
                 return QBrush(Qt.green)
         elif role == Qt.UserRole:
             return item
