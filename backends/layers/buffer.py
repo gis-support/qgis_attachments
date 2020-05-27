@@ -46,17 +46,32 @@ class AttachmentsBuffer(QObject):
             self.registered_layers.add(layer.id())
             layer.beforeCommitChanges.connect(self.beforeCommitChanges)
             layer.afterRollBack.connect( self.afterRollBack )
+            layer.featureAdded.connect( self.featureAdded )
     
     # Sygnały warstw
+
+    def featureAdded(self, fid):
+        """ Dodanie nowego obiektu """
+        #Ta metoda jest wywoływana zarówno po dodaniu obiektu do warstwy jak i w momencie zapisu
+        #Nas interesuje pierwszy przypadek, kiedy ID obiektów jest ujemne
+        if fid>0:
+            return
+        layer = self.sender()
+        feature = layer.editBuffer().addedFeatures()[fid]
+        added = self.added[layer.id()]
+        for field_id in added:
+            #Nowo utworzony obiekt ma ID 0, musimy je zamienić na docelowe ID obiektu (np. -1)
+            data = added[field_id].pop(0, None)
+            if data is None:
+                continue
+            added[field_id][feature.id()] = data
 
     def beforeCommitChanges(self):
         """ Zapis załączników """
         layer = self.sender()
         gpkg_path = layer.dataProvider().dataSourceUri().split('|')[0]
-        # field_id = self.parent.fieldIdx()
-        # print( json.dumps(buffer.added))
-        to_add_fields = self.added[layer.id()]#[field_id]
-        to_delete_fields = self.deleted[layer.id()]#[field_id]
+        to_add_fields = self.added[layer.id()]
+        to_delete_fields = self.deleted[layer.id()]
         deleted = []
         for field_id, to_add in to_add_fields.items():
             to_delete = to_delete_fields[field_id]

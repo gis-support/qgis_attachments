@@ -19,31 +19,6 @@ import json
 
 translate_ = lambda msg: translate('LayersBackend', msg)
 
-def nested_dict(func):
-    return defaultdict( func )
-dict_add = nested_dict(lambda: defaultdict(list) )
-dict_delete = nested_dict(lambda: defaultdict(list) )
-
-class AttachmentsBuffer:
-    
-    #Struktura klucz słowników: warstwa -> pole -> obiekt -> dane
-    added = defaultdict( lambda:dict_add )
-    deleted = defaultdict( lambda: dict_delete )
-
-    def getFeatures(self, layer, field_id):
-        """ Zwraca obiekty przestrzenne danej warstwy, które zostały zmodyfikowane """
-        added = self.added.get( layer.id(), {} ).get( field_id, {} )
-        deleted = self.deleted.get( layer.id(), {} ).get( field_id, {} )
-        fids = set( chain(added.keys(), deleted.keys()))
-        return { f.id():f for f in layer.getFeatures(list(fids)) }
-    
-    def clearLayer(self, layer_id, field_id):
-        """ Czyszczenie bufora dla warstwy i pola """
-        self.added[layer_id][field_id].clear()
-        self.deleted[layer_id][field_id].clear()
-
-buffer = AttachmentsBuffer()
-
 class LayersBackend(BackendAbstract):
 
     LABEL = translate_('Geopaczka')
