@@ -27,6 +27,7 @@ from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtCore import QUrl
 from qgis_attachments.editor.factory import AttachmentControlWidget
 from qgis_attachments.translator import translate
+import os
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -40,8 +41,11 @@ class AttachmentControlPlugin():
         self.iface = iface
 
     def initGui(self):
+        self.menu = QMenu('QGIS Attachments')
+        self.menu.setIcon(QIcon(os.path.join(os.path.dirname(__file__), 'icon.svg')))
         self.documentationAction = QAction(translate_('Dokumentacja'))
-        self.iface.addPluginToMenu('QGIS Attachments', self.documentationAction)
+        self.menu.addAction(self.documentationAction)
+        self.iface.pluginMenu().addMenu(self.menu)
         self.documentationAction.triggered.connect(self.openDocumentation)
 
     def unload(self):
