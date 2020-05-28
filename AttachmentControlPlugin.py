@@ -37,7 +37,7 @@ translate_ = lambda msg: translate('AttachmentControlPlugin', msg)
 class AttachmentControlPlugin():
     def __init__(self, iface):
         widget = AttachmentControlWidget('QGIS Attachments')
-        QgsGui.editorWidgetRegistry().registerWidget('attachmentcontrolwidget', widget)
+        QgsGui.editorWidgetRegistry().registerWidget('QGIS Attachments', widget)
         self.iface = iface
 
     def initGui(self):
