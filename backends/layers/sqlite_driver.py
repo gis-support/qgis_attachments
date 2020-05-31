@@ -32,7 +32,7 @@ class SQLiteDriver:
         return file_name, file_data
     
     @classmethod
-    def fetchAttachments(cls, db_path, row_ids):
+    def fetchAttachments(cls, db_path, row_ids, with_ids=True):
         """ Pobranie listy załączników """
         sql = """SELECT name FROM qgis_attachments WHERE id = {}"""
         values_filenames = []
@@ -43,7 +43,10 @@ class SQLiteDriver:
                     if query_output is None:
                         query_output = connection.execute(sql.format(row_id)).fetchone()
                     elif len(query_output) > 0:
-                        values_filenames.append([row_id, query_output[0]])
+                        if with_ids:
+                            values_filenames.append([row_id, query_output[0]])
+                        else:
+                            values_filenames.append(query_output[0])
                 except sqlite3.OperationalError:
                     #anulowanie wyboru załącznika, value jest puste
                     continue

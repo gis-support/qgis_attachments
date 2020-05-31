@@ -46,7 +46,8 @@ class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
         """ Zapis ustawień ogólnych i sterownika """
         return {'backend':self.cmbBackends.currentData(),
                 **self.currentBackend.config(),
-            'label': self.cmbBackends.currentText()
+            'label': self.cmbBackends.currentText(),
+            'valuesSeparator': self.currentBackend.SEPARATOR
         }
 
     def setConfig(self, config):
