@@ -4,5 +4,6 @@ FORMS = ../editor/configWidget.ui \
 SOURCES = ../backends/files/main.py \
 ../backends/layers/main.py \
 ../AttachmentControlPlugin.py \
-../editor/widget.py
+../editor/widget.py \
+../backends/fieldFormatter.py
 TRANSLATIONS = qgis_attachments_en.ts

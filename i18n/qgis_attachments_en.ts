@@ -3,70 +3,78 @@
 <context>
     <name>AttachmentControlPlugin</name>
     <message>
-        <location filename="../AttachmentControlPlugin.py" line="41"/>
+        <location filename="../AttachmentControlPlugin.py" line="49"/>
         <source>Dokumentacja</source>
         <translation>Documentation</translation>
     </message>
     <message>
-        <location filename="../AttachmentControlPlugin.py" line="49"/>
+        <location filename="../AttachmentControlPlugin.py" line="58"/>
         <source>https://gis-support.pl/qgis-attachements/</source>
         <translation>https://gis-support.com/qgis-attachements/</translation>
     </message>
 </context>
 <context encoding="UTF-8">
+    <name>FieldFormatter</name>
+    <message encoding="UTF-8">
+        <location filename="../backends/fieldFormatter.py" line="15"/>
+        <source>Brak załączników</source>
+        <translation>No attachments</translation>
+    </message>
+</context>
+<context encoding="UTF-8">
     <name>FilesBackend</name>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="33"/>
+        <location filename="../backends/files/main.py" line="35"/>
         <source>Mój komputer</source>
         <translation>My Computer</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="35"/>
+        <location filename="../backends/files/main.py" line="37"/>
         <source>Przechowuje ścieżki do plików z dysku lokalnego.</source>
         <translation>Stores paths to files located on hard drive.</translation>
     </message>
     <message>
-        <location filename="../backends/files/main.py" line="43"/>
+        <location filename="../backends/files/main.py" line="45"/>
         <source>Opcje</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../backends/files/main.py" line="43"/>
+        <location filename="../backends/files/main.py" line="45"/>
         <source>Pliki</source>
         <translation>Files</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="81"/>
+        <location filename="../backends/files/main.py" line="83"/>
         <source>Wskazane pole może przechowywać do</source>
         <translation>Selected field can store up to</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="81"/>
+        <location filename="../backends/files/main.py" line="83"/>
         <source>znaków co ogranicza liczbę przechowywanych załączników.</source>
         <translation>characters. It limits the number of stored attachments.</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="98"/>
+        <location filename="../backends/files/main.py" line="100"/>
         <source>Wybierz załączniki</source>
         <translation>Choose attachments</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="180"/>
+        <location filename="../backends/files/main.py" line="182"/>
         <source>Błąd</source>
         <translation>Error</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/files/main.py" line="120"/>
+        <location filename="../backends/files/main.py" line="122"/>
         <source>Nie można dodać załączników, przekroczono maksymalną długość znaków</source>
         <translation>Maximum character limit exceeded, can not add more attachments</translation>
     </message>
     <message>
-        <location filename="../backends/files/main.py" line="180"/>
+        <location filename="../backends/files/main.py" line="182"/>
         <source>Plik</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../backends/files/main.py" line="180"/>
+        <location filename="../backends/files/main.py" line="182"/>
         <source>nie istnieje.</source>
         <translation>does not exist.</translation>
     </message>
@@ -102,22 +110,22 @@
 <context encoding="UTF-8">
     <name>LayersBackend</name>
     <message>
-        <location filename="../backends/layers/main.py" line="46"/>
+        <location filename="../backends/layers/main.py" line="24"/>
         <source>Geopaczka</source>
         <translation>Geopackage</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/layers/main.py" line="48"/>
+        <location filename="../backends/layers/main.py" line="26"/>
         <source>Przechowuje załączniki w geopaczce.</source>
         <translation>Stores attachments in geopackage</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="59"/>
+        <location filename="../backends/layers/main.py" line="37"/>
         <source>Opcje</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="59"/>
+        <location filename="../backends/layers/main.py" line="37"/>
         <source>Pliki</source>
         <translation>Files</translation>
     </message>
@@ -132,12 +140,12 @@
         <translation>Deleting failed. No objects selected.</translation>
     </message>
     <message>
-        <location filename="../backends/layers/main.py" line="229"/>
+        <location filename="../backends/layers/main.py" line="123"/>
         <source>Sukces</source>
         <translation>Success</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../backends/layers/main.py" line="229"/>
+        <location filename="../backends/layers/main.py" line="123"/>
         <source>Pomyślnie wyeksportowano plik</source>
         <translation>File exported successfully</translation>
     </message>

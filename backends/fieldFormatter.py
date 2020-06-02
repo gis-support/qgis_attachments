@@ -1,5 +1,8 @@
 from qgis.core import QgsFieldFormatter, NULL
 from qgis_attachments.backends.layers.sqlite_driver import SQLiteDriver
+from qgis_attachments.translator import translate
+
+translate_ = lambda msg: translate('FieldFormatter', msg)
 
 class AttachmentsFieldFormatter(QgsFieldFormatter):
 
@@ -9,7 +12,7 @@ class AttachmentsFieldFormatter(QgsFieldFormatter):
 
     def representValue(self, layer, fieldIndex, config, cache, values):
         if values == NULL:
-            return 'Brak załączników'
+            return translate_('Brak załączników')
 
         if config['backend'] == 'layers':
             layer_path = layer.dataProvider().dataSourceUri().split('|')[0]
