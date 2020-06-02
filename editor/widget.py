@@ -44,7 +44,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
             frame = QFrame(parent)
             self.widget.setParent(frame)
             frame.setFrameShape( QFrame.StyledPanel )
-            frame.setMinimumSize( QSize( 320, 200 ) )
+            frame.setMinimumSize( QSize( 500, 200 ) )
             formLayout = QVBoxLayout( frame )
             formLayout.addWidget( self.widget )
             

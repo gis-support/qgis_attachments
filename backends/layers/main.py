@@ -109,6 +109,8 @@ class LayersBackend(BackendAbstract):
 
         item = self.model.data(index, Qt.UserRole)
         file_name, file_data = SQLiteDriver.fetchAttachment( self.geopackage_path, item.id )
+        if file_name is None or file_data is None:
+            return
         save_dir = ''
         if option == 'saveTemp':
             path = tempfile.gettempdir()

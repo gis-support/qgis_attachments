@@ -27,8 +27,11 @@ class SQLiteDriver:
     def fetchAttachment(cls, db_path, row_id):
         """ Pobranie pojedynczego załącznika """
         with cls.connection(db_path) as connection:
-            sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
-            file_name, file_data = connection.execute(sql.format(row_id)).fetchone()
+            if row_id == '-1':
+                file_name, file_data = None, None
+            else:
+                sql = """SELECT name, data FROM qgis_attachments WHERE id = {}"""
+                file_name, file_data = connection.execute(sql.format(row_id)).fetchone()
         return file_name, file_data
     
     @classmethod

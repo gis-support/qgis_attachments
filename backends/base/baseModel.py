@@ -2,7 +2,7 @@
 
 from qgis.PyQt.QtCore import Qt, QAbstractTableModel, QModelIndex, QFileInfo
 from qgis.PyQt.QtWidgets import QFileIconProvider
-from qgis.PyQt.QtGui import QBrush
+from qgis.PyQt.QtGui import QBrush, QColor
 
 icons_db = QFileIconProvider()
 
@@ -55,7 +55,7 @@ class AttachmentsAbstractModel(QAbstractTableModel):
             return icon
         elif role == Qt.BackgroundRole:
             if getattr(item, 'id', None) == '-1':
-                return QBrush(Qt.green)
+                return QBrush(QColor(253, 244, 143))
         elif role == Qt.UserRole:
             return item
     
