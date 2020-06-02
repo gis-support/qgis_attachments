@@ -2,7 +2,7 @@
 
 from qgis_attachments.backends.layers.sqlite_driver import SQLiteDriver
 from qgis.PyQt.QtCore import QObject
-from qgis.core import NULL, QgsProject, QgsFeatureRequest
+from qgis.core import NULL, QgsProject
 import os
 from collections import defaultdict
 from itertools import chain
@@ -117,8 +117,9 @@ class AttachmentsBuffer(QObject):
         """ Usuwanie  załączników po usunięciu obiektu warstwy """
         layer = self.sender()
         deleted = self.deleted[layer.id()]
-        for feature in layer.dataProvider().getFeatures(QgsFeatureRequest().setFilterFid(fid)):
-            for index, _ in enumerate(feature.fields().toList()):
-                if layer.editorWidgetSetup(index).type() == 'QGIS Attachments':
-                    attachments = feature.attribute(index).split(self.SEPARATOR)
-                    deleted[index][fid].extend(attachments)
+        feature = layer.getFeature(fid)
+        for index, _ in enumerate(feature.fields().toList()):
+            if layer.editorWidgetSetup(index).type() == 'QGIS Attachments':
+                attribute = feature.attribute(index)
+                if attribute != NULL:
+                    deleted[index][fid].extend(attribute.split(self.SEPARATOR))
