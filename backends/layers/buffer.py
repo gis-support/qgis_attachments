@@ -2,7 +2,7 @@
 
 from qgis_attachments.backends.layers.sqlite_driver import SQLiteDriver
 from qgis.PyQt.QtCore import QObject
-from qgis.core import NULL, QgsProject, QgsFeatureRequest
+from qgis.core import NULL, QgsProject, QgsFeatureRequest, QgsMapLayer
 import os
 from collections import defaultdict
 from itertools import chain
@@ -17,12 +17,11 @@ class AttachmentsBuffer(QObject):
     #Struktura klucz słowników: warstwa -> pole -> obiekt -> dane
     added = defaultdict( lambda:dict_add )
     deleted = defaultdict( lambda: dict_delete )
-    registered_layers = set()
 
     def __init__(self, separator):
         super(AttachmentsBuffer, self).__init__()
-        QgsProject.instance().layerRemoved.connect(self.clearLayer)
         self.SEPARATOR = separator
+        QgsProject.instance().layerWasAdded[QgsMapLayer].connect(self.registerLayer)
 
     def getFeatures(self, layer, field_id):
         """ Zwraca obiekty przestrzenne danej warstwy, które zostały zmodyfikowane """
@@ -42,12 +41,21 @@ class AttachmentsBuffer(QObject):
     
     def registerLayer(self, layer):
         """ Zarejestrowanie warstwy """
-        if layer.id() not in self.registered_layers:
-            self.registered_layers.add(layer.id())
-            layer.beforeCommitChanges.connect(self.beforeCommitChanges)
-            layer.afterRollBack.connect( self.afterRollBack )
-            layer.featureAdded.connect( self.featureAdded )
-            layer.featureDeleted.connect( self.featureDeleted )
+        #Sprawdzamy czy warstwa ma pola obsługiuwane przez sterownik
+        for index, _ in enumerate(layer.fields()):
+            if self.supportedField(layer, index):
+                break
+        else:
+            # Brak zarejestrowanego pola dla geopaczki
+            return
+        layer.beforeCommitChanges.connect(self.beforeCommitChanges)
+        layer.afterRollBack.connect( self.afterRollBack )
+        layer.featureAdded.connect( self.featureAdded )
+        layer.featureDeleted.connect( self.featureDeleted )
+    
+    def supportedField(self, layer, index):
+        widget_setup = layer.editorWidgetSetup(index)
+        return widget_setup.config().get('backend')=='layers'
     
     # Sygnały warstw
 
@@ -73,9 +81,12 @@ class AttachmentsBuffer(QObject):
         gpkg_path = layer.dataProvider().dataSourceUri().split('|')[0]
         to_add_fields = self.added[layer.id()]
         to_delete_fields = self.deleted[layer.id()]
+        fields = set(to_add_fields.keys())
+        fields.update( to_delete_fields.keys() )
         deleted = []
-        for field_id, to_add in to_add_fields.items():
+        for field_id in fields:
             to_delete = to_delete_fields[field_id]
+            to_add = to_add_fields[field_id]
             for fid, feature in self.getFeatures(layer, field_id).items():
                 #Dodawane załączniki
                 added = to_add.pop(fid)
@@ -119,7 +130,10 @@ class AttachmentsBuffer(QObject):
             layer = self.sender()
             deleted = self.deleted[layer.id()]
             for feature in layer.dataProvider().getFeatures(QgsFeatureRequest().setFilterFid(fid)):
-                for index, _ in enumerate(feature.fields().toList()):
-                    if layer.editorWidgetSetup(index).type() == 'QGIS Attachments':
+                for index, _ in enumerate(feature.fields()):
+                    if self.supportedField(layer, index):
+                        value = feature.attribute(index)
+                        if value is NULL:
+                            continue
                         attachments = feature.attribute(index).split(self.SEPARATOR)
                         deleted[index][fid].extend(attachments)
