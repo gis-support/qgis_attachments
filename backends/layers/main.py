@@ -47,12 +47,14 @@ class LayersBackend(BackendAbstract):
         return True if layer.dataProvider().dataSourceUri().split('|')[0].endswith('.gpkg') else False
     
     # FORMATOWANIE TEKSTU
-    @staticmethod
-    def representValue(self, layer, fieldIndex, config, cache, value):
+    @classmethod
+    def representValue(cls, layer, fieldIndex, config, cache, value):
         layer_path = layer.dataProvider().dataSourceUri().split('|')[0]
-        separator = config['valuesSeparator']
-        filenames = SQLiteDriver.fetchAttachments(layer_path, value.split(separator), with_ids=False)
-        return separator.join(filenames)
+        values = value.split(cls.SEPARATOR)
+        added_count = values.count('-1')
+        filenames = SQLiteDriver.fetchAttachments(layer_path, values, with_ids=False)
+        filenames.extend( [translate_('Nowy załącznik')]*added_count )
+        return cls.SEPARATOR.join(filenames)
 
     #Formularz
     def setValue(self, value):

@@ -40,8 +40,8 @@ class BackendAbstract(QObject):
     
     # FORMATOWANIE TEKSTU
 
-    @staticmethod
-    def representValue(self, layer, fieldIndex, config, cache, value):
+    @classmethod
+    def representValue(cls, layer, fieldIndex, config, cache, value):
         return value
 
     # FORMULARZ

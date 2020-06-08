@@ -20,4 +20,4 @@ class AttachmentsFieldFormatter(QgsFieldFormatter):
         if not backend:
             return value
         #Zwrócenie wartości dla danego backendu
-        return backend.representValue(self, layer, fieldIndex, config, cache, value)
+        return backend.representValue(layer, fieldIndex, config, cache, value)
