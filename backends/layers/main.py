@@ -45,6 +45,14 @@ class LayersBackend(BackendAbstract):
     @staticmethod
     def isSupported(layer):
         return True if layer.dataProvider().dataSourceUri().split('|')[0].endswith('.gpkg') else False
+    
+    # FORMATOWANIE TEKSTU
+    @staticmethod
+    def representValue(self, layer, fieldIndex, config, cache, value):
+        layer_path = layer.dataProvider().dataSourceUri().split('|')[0]
+        separator = config['valuesSeparator']
+        filenames = SQLiteDriver.fetchAttachments(layer_path, value.split(separator), with_ids=False)
+        return separator.join(filenames)
 
     #Formularz
     def setValue(self, value):

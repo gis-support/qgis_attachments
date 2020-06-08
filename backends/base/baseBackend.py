@@ -37,6 +37,12 @@ class BackendAbstract(QObject):
 
     def warnings(self, layer, fieldIdx):
         return []
+    
+    # FORMATOWANIE TEKSTU
+
+    @staticmethod
+    def representValue(self, layer, fieldIndex, config, cache, value):
+        return value
 
     # FORMULARZ
 

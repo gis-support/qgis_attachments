@@ -27,7 +27,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtCore import QUrl
 from qgis_attachments.editor.factory import AttachmentControlWidget
-from qgis_attachments.backends.fieldFormatter import AttachmentsFieldFormatter
+from qgis_attachments.editor.fieldFormatter import AttachmentsFieldFormatter
 from qgis_attachments.translator import translate
 import os
 
