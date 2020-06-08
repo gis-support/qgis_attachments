@@ -15,21 +15,18 @@ class AttachmentControlWidgetConfig(QgsEditorConfigWidget):
         self.currentBackend = None
         ui_path = os.path.join(os.path.dirname(__file__), 'configWidget.ui')
         uic.loadUi(ui_path, self)
-        for index, backend_name in enumerate(backends_registry.backends):
-            backend_label = backends_registry.labels[backend_name]
-            supported = backends_registry.supported[backend_name]
-            self.cmbBackends.addItem( backend_label, backend_name )
-            if not supported(vl):
-                self.cmbBackends.model().item(index).setEnabled(False)
-        self.cmbBackends.currentTextChanged.connect( self.setBackend )
-        self.setBackend( self.cmbBackends.currentText() )
+        for index, backend in enumerate(backends_registry.backends.values()):
+            self.cmbBackends.addItem( backend.LABEL, backend.NAME )
+            self.cmbBackends.model().item(index).setEnabled( backend.isSupported(vl) )
+        self.cmbBackends.currentIndexChanged.connect( self.setBackend )
+        self.setBackend( self.cmbBackends.currentIndex() )
     
-    def setBackend(self, label):
+    def setBackend(self, index):
         """ Zmiana sterownika dla załączników """
         if self.widget is not None:
             self.layout().removeWidget( self.widget )
             self.widget.deleteLater()
-        name = backends_registry.getBackendNameFromLabel(label)
+        name = self.cmbBackends.itemData( index )
         self.currentBackend = backends_registry.getBackendInstance( name, self )
         self.setDescription()
         self.widget = self.currentBackend.createConfigWidget()
