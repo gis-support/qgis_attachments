@@ -4,7 +4,7 @@
 
 [general]
 name=QGIS Attachments
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.4
 description=PL: Wtyczka umożliwia przypisywanie załączników do obiektów. Konfigurując formularz atrybutów z nowym typem widżetu, możemy przypisywać załączniki do obiektów bezpośrednio w tabeli atrybutów lub formularzu.
     EN: The plugin allows you to assign attachments to objects. Setting Attributes Forms  with the new Widget Type, we can assign attachments to objects directly in the Attribute Table or in the Form view.
 version=0.5
@@ -21,8 +21,8 @@ about=PL:
     a) storing file paths from the local disk
     b) storing attachments together with the layer in a geopackage
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/gis-support/qgis_attachments/issues
+repository=https://github.com/gis-support/qgis_attachments
 # End of mandatory metadata
 
 # Recommended items:

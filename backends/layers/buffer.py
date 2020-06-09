@@ -2,7 +2,7 @@
 
 from qgis_attachments.backends.layers.sqlite_driver import SQLiteDriver
 from qgis.PyQt.QtCore import QObject
-from qgis.core import NULL, QgsProject, QgsFeatureRequest, QgsMapLayer
+from qgis.core import NULL, QgsProject, QgsFeatureRequest, QgsMapLayer, QgsMapLayerType
 import os
 from collections import defaultdict
 from itertools import chain
@@ -42,16 +42,17 @@ class AttachmentsBuffer(QObject):
     def registerLayer(self, layer):
         """ Zarejestrowanie warstwy """
         #Sprawdzamy czy warstwa ma pola obsługiuwane przez sterownik
-        for index, _ in enumerate(layer.fields()):
-            if self.supportedField(layer, index):
-                break
-        else:
-            # Brak zarejestrowanego pola dla geopaczki
-            return
-        layer.beforeCommitChanges.connect(self.beforeCommitChanges)
-        layer.afterRollBack.connect( self.afterRollBack )
-        layer.featureAdded.connect( self.featureAdded )
-        layer.featureDeleted.connect( self.featureDeleted )
+        if layer.type() == QgsMapLayerType.VectorLayer:
+            for index, _ in enumerate(layer.fields()):
+                if self.supportedField(layer, index):
+                    break
+            else:
+                # Brak zarejestrowanego pola dla geopaczki
+                return
+            layer.beforeCommitChanges.connect(self.beforeCommitChanges)
+            layer.afterRollBack.connect( self.afterRollBack )
+            layer.featureAdded.connect( self.featureAdded )
+            layer.featureDeleted.connect( self.featureDeleted )
     
     def supportedField(self, layer, index):
         widget_setup = layer.editorWidgetSetup(index)
