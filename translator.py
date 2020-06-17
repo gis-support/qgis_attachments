@@ -1,10 +1,11 @@
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator, QSettings, qVersion
+from qgis.PyQt.QtCore import QCoreApplication, QTranslator, qVersion
+from qgis.core import QgsSettings
 import os
 
 #Stworzenie QTranslatora
 directory = os.path.dirname(__file__)
 
-locale = QSettings().value('locale/userLocale')[0:2]
+locale = QgsSettings().value('locale/userLocale', 'en')[0:2]
 if locale not in ['pl', 'en']:
     #Ręczne ustawianie języka EN w przypadku locale != PL, EN
     locale = 'en'
