@@ -11,7 +11,7 @@ class BackendsRegistry:
         self.backends_dir = Path(__file__).parent
 
         self.backends = {}
-        for module_name in ['files', 'layers']:
+        for module_name in ['files', 'layers', 'qgis_cloud']:
             main_module = self.backends_dir.joinpath(module_name).joinpath('main.py')
             #Załadowanie modułu
             spec = util.spec_from_file_location('main', main_module)

@@ -10,6 +10,7 @@ from qgis_attachments.backends.layers.model import LayersAttachmentItem
 from qgis_attachments.backends.layers.buffer import AttachmentsBuffer
 from qgis_attachments.backends.base.baseDelegates import OptionButton
 from qgis_attachments.backends.layers.sqlite_driver import SQLiteDriver
+from qgis_attachments.backends.utils import saveFile
 from qgis_attachments.translator import translate
 import tempfile
 import os
@@ -105,18 +106,6 @@ class LayersBackend(BackendAbstract):
 
     def fileAction(self, index, option):
         """Zapisuje plik do katalogu tymczasowego lub wskazanego przez użytkownika"""
-
-        def saveFile(save_dir, file_data, filename=None):
-            """Funkcja pomocnicza do zapisu pliku we wskazanym miejscu"""
-            path = os.path.join(save_dir, filename) if filename else save_dir
-            try:
-                with open(path, 'wb') as f:
-                    f.write(file_data)
-                return path
-            except FileNotFoundError:
-                #Anulowanie zapisywania
-                return
-
         item = self.model.data(index, Qt.UserRole)
         file_name, file_data = SQLiteDriver.fetchAttachment( self.geopackage_path, item.id )
         if file_name is None or file_data is None:

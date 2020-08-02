@@ -67,6 +67,7 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         #Pobranie aktualnego sterownika
         backend_name = self.config()['backend']
         self.backend = backends_registry.getBackendInstance( backend_name, self )
+        self.configureDownloadAllButton(backend_name)
         #Ikony przycisków
         self.widget.btnAdd.setIcon( QgsApplication.getThemeIcon('/mActionAdd.svg') )
         self.widget.btnDelete.setIcon( QgsApplication.getThemeIcon('/mActionRemove.svg') )
@@ -77,6 +78,14 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         self.widget.tblAttachments.setModel( self.backend.model )
         self.backend.setOptions()
     
+    def configureDownloadAllButton(self, backend_name):
+        """Ustawia widoczność i callback przycisku `Pobierz wszystkie` w zależności od wybranego backendu"""
+        if backend_name != 'cloud':
+            self.widget.btnDownloadAll.hide()
+        else:
+            self.widget.btnDownloadAll.clicked.connect(self.downloadAll)
+            self.widget.btnDownloadAll.setIcon(QgsApplication.getThemeIcon('/downloading_svg.svg'))
+
     def setEnabled(self, enabled):
         """ Ustawienie aktywności elementów formularza w zależności od trybu edycji """
         self.widget.btnAdd.setEnabled( enabled )
@@ -108,3 +117,6 @@ class AttachmentControlWidgetWrapper(QgsEditorWidgetWrapper):
         result = self.backend.deleteAttachment()
         if result:
             self.emitValueChanged()
+
+    def downloadAll(self):
+        self.backend.downloadAll()
