@@ -168,10 +168,22 @@ class CloudBackend(BackendAbstract):
             ids = []
             for row in range(0, self.model.rowCount()):
                 index = self.model.index(row, 0, self.parent.widget.tblAttachments.rootIndex())
-                ids.append(self.model.data(index, Qt.UserRole).cloud_id)
-            path, _ = QFileDialog.getSaveFileName(directory='zalaczniki.zip')
-            if path:
+                cloud_id = self.model.data(index, Qt.UserRole).cloud_id
+                if cloud_id == '-1':
+                    self.parent.bar.pushWarning(
+                        translate_('Uwaga'),
+                        translate_('Paczkę z załącznikami można zapisać po ich załadowaniu do Cloud. Nastąpi to po zakończeniu lub zapisaniu edycji.')
+                    )
+                    return
+                ids.append(cloud_id)
+            if len(ids) > 1:
+                file_name = f'{self.parent.layer().name()}_{self.getFeature().id()}.zip'
+                path, _ = QFileDialog.getSaveFileName(directory=file_name)
                 attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
+            else:
+                file_name, attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
+                path, _ = QFileDialog.getSaveFileName(directory=file_name)
+            if path:
                 saveFile(path, attachments_data)
                 iface.messageBar().pushSuccess(translate_('Sukces'), 'Pomyślnie zapisano załączniki')
 
