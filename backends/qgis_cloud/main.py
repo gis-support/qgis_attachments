@@ -21,9 +21,9 @@ translate_ = lambda msg: translate('CloudBackend', msg)
 
 class CloudBackend(BackendAbstract):
 
-    LABEL = 'Qgis Cloud'
+    LABEL = 'GIS Support Cloud'
     NAME = 'cloud'
-    DESCRIPTION = 'Przechowuje załączniki w Cloud'
+    DESCRIPTION = 'Przechowuje załączniki w GIS Support Cloud'
 
     def __init__(self, parent):
         super(CloudBackend, self).__init__([
@@ -54,10 +54,11 @@ class CloudBackend(BackendAbstract):
         """Zapis ustawień konfiguracji"""
         url = self.configWidget.lnAddress.text().strip()
         data = {
-            'api_url': url if url.endswith('/') else url + '/',
             'user': self.configWidget.lnLogin.text(),
             'password': self.configWidget.lnPassword.text()
         }
+        if url:
+            data.update({'api_url': url if url.endswith('/') else url + '/'})
         buffer.config = data
         return data
 
@@ -80,14 +81,14 @@ class CloudBackend(BackendAbstract):
     #Formularz
     def setValue(self, value):
         """Parsowanie tekstu do listy załączników"""
+        if value == NULL:
+            return
         if not self.api_token:
             self.getApiToken()
+        cloud_ids = value.split( self.SEPARATOR )
         if self.api_token:
             #Wyczyszczenie listy załączników
             self.model.clear()
-            if value == NULL:
-                return
-            cloud_ids = value.split( self.SEPARATOR )
             #Wypełnienie lisy załączników
             if '-1' not in cloud_ids:
                 values = CloudDriver.fetchAttachmentsMetadata(self.parent.config()['api_url'], cloud_ids, self.api_token)
@@ -97,6 +98,12 @@ class CloudBackend(BackendAbstract):
                 #Dodane i niezapisane załączniki
                 items = buffer.added[layer.id()][self.parent.fieldIdx()][feature.id()]
                 self.model.insertRows( items, max_length=self.parent.field().length())
+            else:
+                #Załączniki dodane, ale nie wysłane do Cloud
+                self.model.insertRows( [['-1', '-1']] * len(cloud_ids), max_length=self.parent.field().length())
+        else:
+            self.model.clear()
+            self.model.insertRows([[cid, '-1'] for cid in cloud_ids], max_length=self.parent.field().length())
 
     def addAttachment(self):
         """Dodaje załącznik"""
@@ -180,12 +187,25 @@ class CloudBackend(BackendAbstract):
                 file_name = f'{self.parent.layer().name()}_{self.getFeature().id()}.zip'
                 path, _ = QFileDialog.getSaveFileName(directory=file_name)
                 attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
-            else:
+            elif ids:
                 file_name, attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
                 path, _ = QFileDialog.getSaveFileName(directory=file_name)
+            else:
+                self.parent.bar.pushWarning(
+                    translate_('Uwaga'),
+                    translate_('Brak załączników do pobrania')
+                )
+                return
             if path:
                 saveFile(path, attachments_data)
                 iface.messageBar().pushSuccess(translate_('Sukces'), 'Pomyślnie zapisano załączniki')
+    """
+    #Ustawienia
+    @staticmethod
+    def isSupported(layer):
+        #Tymczasowe sprawdzanie czy warstwa pochodzi z Cloud
+        return True if 'cloud' in layer.dataProvider().dataSourceUri().lower() else False
+    """
 
 #Stworzenie instancji bufora edycyjnego załączników
 buffer = CloudBuffer(CloudBackend.SEPARATOR)
