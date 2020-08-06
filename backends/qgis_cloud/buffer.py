@@ -97,7 +97,10 @@ class CloudBuffer(QObject):
                 to_add = to_add_fields[field_id]
                 for fid, feature in self.getFeatures(layer, field_id).items():
                     #Dodawane załączniki
-                    added = to_add.pop(fid)
+                    try:
+                        added = to_add.pop(fid)
+                    except:
+                        continue
                     files = [ f[1] for f in added ]
                     files_indexes = [ str(fid) for fid in CloudDriver.uploadAttachments(
                             self.config['api_url'], self.backend.api_token, files
@@ -141,7 +144,7 @@ class CloudBuffer(QObject):
         layer.reload()
 
     def featureDeleted(self, fid):
-        """ Usuwanie  załączników po usunięciu obiektu warstwy """
+        """ Usuwanie załączników po usunięciu obiektu warstwy """
         if fid > 0:
             layer = self.sender()
             deleted = self.deleted[layer.id()]

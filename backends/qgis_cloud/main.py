@@ -70,8 +70,11 @@ class CloudBackend(BackendAbstract):
         buffer.config = self.parent.config()
 
     def getApiToken(self):
+        """Pobiera token z Cloud i zapisuje informacje o danych połączenia"""
         if not self.api_token:
             auth_output = CloudDriver.authenticate(self.parent.config())
+            if not buffer.config:
+                buffer.config = self.parent.config()
             if 'error' not in auth_output:
                 self.api_token = auth_output
             else:
@@ -81,14 +84,14 @@ class CloudBackend(BackendAbstract):
     #Formularz
     def setValue(self, value):
         """Parsowanie tekstu do listy załączników"""
+        #Wyczyszczenie listy załączników
+        self.model.clear()
         if value == NULL:
             return
         if not self.api_token:
             self.getApiToken()
         cloud_ids = value.split( self.SEPARATOR )
         if self.api_token:
-            #Wyczyszczenie listy załączników
-            self.model.clear()
             #Wypełnienie lisy załączników
             if '-1' not in cloud_ids:
                 values = CloudDriver.fetchAttachmentsMetadata(self.parent.config()['api_url'], cloud_ids, self.api_token)
@@ -102,7 +105,6 @@ class CloudBackend(BackendAbstract):
                 #Załączniki dodane, ale nie wysłane do Cloud
                 self.model.insertRows( [['-1', '-1']] * len(cloud_ids), max_length=self.parent.field().length())
         else:
-            self.model.clear()
             self.model.insertRows([[cid, '-1'] for cid in cloud_ids], max_length=self.parent.field().length())
 
     def addAttachment(self):
@@ -128,11 +130,15 @@ class CloudBackend(BackendAbstract):
         item = self.model.data(index, Qt.UserRole)
         item.to_delete = True
         self.parent.widget.tblAttachments.model().dataChanged.emit( index, index )
-        value_to_delete = item.cloud_id
+        cloud_id = item.cloud_id
         self.model.removeRow(index.row())
-
         feature = self.getFeature()
-        buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( value_to_delete )
+        buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( cloud_id )
+        added = buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()]
+        #Sprawdzenie czy usunięty załącznik nie znajduje się na liście dodawanych załączników
+        item_to_delete = [cloud_id, item.value]
+        if item_to_delete in added:
+            added.pop(added.index(item_to_delete))
         return True
 
     def fileAction(self, index, option):

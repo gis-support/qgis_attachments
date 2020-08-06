@@ -37,6 +37,8 @@ class CloudDriver:
     def fetchAttachments(cls, route, ids, token):
         response = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}/files?ids={",".join(ids)}&', token=token)
         response_data = response.readAll().data()
+        if not response_data:
+            response_data = response.readAll()
         if len(ids) == 1:
             file_name = cls.fetchAttachmentsMetadata(route, ids, token, name_only=True)
             return file_name, response_data
