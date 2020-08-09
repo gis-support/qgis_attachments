@@ -13,7 +13,7 @@ class CloudDriver:
 
     @classmethod
     def authenticate(cls, api_data):
-        url = api_data.get('api_url')
+        url = api_data.get('api_url', '')
         request_data = {'user': api_data.get('user'), 'password': api_data.get('password')}
         response = cls._sendRequest(url + cls.LOGIN_ROUTE, data=request_data, method='post', get_token=True)
         try:
@@ -28,7 +28,10 @@ class CloudDriver:
     @classmethod
     def fetchAttachmentsMetadata(cls, route, ids, token, name_only=False):
         response = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}/metadata?ids={",".join(ids)}&', token=token)
-        response_data = json.loads(response.readAll().data().decode())['data']
+        response_decoded = response.readAll().data().decode()
+        if 'invalid token' in response_decoded:
+            return None
+        response_data = json.loads(response_decoded)['data']
         if name_only:
             return response_data[0]['file_name']
         return [[str(obj['id']), obj['file_name']] for obj in response_data]
@@ -37,9 +40,10 @@ class CloudDriver:
     def fetchAttachments(cls, route, ids, token):
         response = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}/files?ids={",".join(ids)}&', token=token)
         response_data = response.readAll().data()
+        count = len(ids)
         if not response_data:
             response_data = response.readAll()
-        if len(ids) == 1:
+        if count == 1:
             file_name = cls.fetchAttachmentsMetadata(route, ids, token, name_only=True)
             return file_name, response_data
         else:
@@ -58,14 +62,18 @@ class CloudDriver:
             })
 
         response = cls._sendRequest(route + cls.ATTACHMENTS_ROUTE, method='post', data=json.dumps(request_data), token=token)
-        response_data = json.loads(response.readAll().data().decode())['data']
+        response_decoded = response.readAll().data().decode()
+        if 'invalid token' in response_decoded:
+            return None
+        response_data = json.loads(response_decoded)['data']
         ids = [added['attachment_id'] for added in response_data]
         return ids
 
     @classmethod
     def deleteAttachments(cls, route, token, attachments_ids):
         ids = ','.join(attachments_ids)
-        return cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}?ids={ids}&', method='delete', token=token)
+        response_data = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}?ids={ids}&', method='delete', token=token)
+        return None if 'invalid token' in response_data else response_data
 
     @staticmethod
     def _sendRequest(route, method='get', data=None, token=None, get_token=False):

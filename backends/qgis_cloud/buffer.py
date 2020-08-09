@@ -83,9 +83,8 @@ class CloudBuffer(QObject):
 
     def beforeCommitChanges(self):
         """ Zapis załączników """
-        if not self.backend.api_token:
-            self.backend.getApiToken()
-        if self.backend.api_token:
+        token = self.backend.getApiToken(config_type='buffer', data=self.config)
+        if token:
             layer = self.sender()
             to_add_fields = self.added[layer.id()]
             to_delete_fields = self.deleted[layer.id()]
@@ -102,10 +101,12 @@ class CloudBuffer(QObject):
                     except:
                         continue
                     files = [ f[1] for f in added ]
-                    files_indexes = [ str(fid) for fid in CloudDriver.uploadAttachments(
-                            self.config['api_url'], self.backend.api_token, files
-                        )
-                    ]
+                    uploaded = CloudDriver.uploadAttachments(self.config['api_url'], token, files)
+                    if uploaded is None:
+                        #Token wygasł
+                        token = self.backend.getApiToken(config_type='buffer', data=self.config, refresh=True)
+                        uploaded = CloudDriver.uploadAttachments(self.config['api_url'], token, files)
+                    files_indexes = [ str(fid) for fid in uploaded ]
                     #Usuwanie załączniki
                     deleted.extend( to_delete.pop(feature.id(), []) )
                     if feature[field_id]:
@@ -129,11 +130,11 @@ class CloudBuffer(QObject):
             if not deleted:
                 return
             #Skasowanie usuniętych załączników z bazy
-            CloudDriver.deleteAttachments(
-                self.config['api_url'],
-                self.backend.api_token,
-                list(set(deleted))
-            )
+            deleted_attachments = CloudDriver.deleteAttachments(self.config['api_url'], token, list(set(deleted)))
+            if deleted_attachments is None:
+                #Token wygasł
+                token = self.backend.getApiToken(config_type='buffer', data=self.config, refresh=True)
+                CloudDriver.deleteAttachments(self.config['api_url'], token, list(set(deleted)))
         else:
             return
 

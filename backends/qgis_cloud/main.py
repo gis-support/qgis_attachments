@@ -1,6 +1,6 @@
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
-from qgis.PyQt.QtCore import Qt, QUrl, QDir
+from qgis.PyQt.QtCore import Qt, QUrl, QDir, QSettings
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis_attachments.backends.base.baseBackend import BackendAbstract
 from qgis_attachments.backends.base.baseModel import AttachmentsAbstractModel
@@ -40,8 +40,8 @@ class CloudBackend(BackendAbstract):
                 ItemClass=CloudAttachmentItem
         )
         buffer.backend = self
+        buffer.config = self.parent.config()
         buffer.registerLayer( self.parent.layer() )
-        self.api_token = None
 
     #Konfiguracja
     def createConfigWidget(self):
@@ -69,17 +69,20 @@ class CloudBackend(BackendAbstract):
         self.configWidget.lnPassword.setText(config.get('password'))
         buffer.config = self.parent.config()
 
-    def getApiToken(self):
+    def getApiToken(self, config_type='parent', data={}, refresh=False):
         """Pobiera token z Cloud i zapisuje informacje o danych połączenia"""
-        if not self.api_token:
-            auth_output = CloudDriver.authenticate(self.parent.config())
+        config = self.parent.config() if config_type == 'parent' else data
+        token = QSettings().value(f'{config.get("api_url")}_token', None)
+        if not token or refresh:
+            auth_output = CloudDriver.authenticate(config)
             if not buffer.config:
-                buffer.config = self.parent.config()
+                buffer.config = config
             if 'error' not in auth_output:
-                self.api_token = auth_output
+                QSettings().setValue(f'{config.get("api_url")}_token', auth_output)
             else:
                 iface.messageBar().pushCritical(translate_('Błąd'), auth_output['error'])
-                return
+                return None
+        return QSettings().value(f'{config.get("api_url")}_token', None)
 
     #Formularz
     def setValue(self, value):
@@ -88,13 +91,19 @@ class CloudBackend(BackendAbstract):
         self.model.clear()
         if value == NULL:
             return
-        if not self.api_token:
-            self.getApiToken()
+        token = self.getApiToken()
         cloud_ids = value.split( self.SEPARATOR )
-        if self.api_token:
+        if token:
             #Wypełnienie lisy załączników
             if '-1' not in cloud_ids:
-                values = CloudDriver.fetchAttachmentsMetadata(self.parent.config()['api_url'], cloud_ids, self.api_token)
+                values = CloudDriver.fetchAttachmentsMetadata(self.parent.config()['api_url'], cloud_ids, token)
+                if values is None:
+                    #Token wygasł
+                    token = self.getApiToken(refresh=True)
+                    if not token:
+                        self.model.insertRows([[cid, translate_('Załącznik niedostępny')] for cid in cloud_ids], max_length=self.parent.field().length())
+                        return
+                    values = CloudDriver.fetchAttachmentsMetadata(self.parent.config()['api_url'], cloud_ids, token)
                 layer = self.parent.layer()
                 feature = self.getFeature()
                 self.model.insertRows(values)
@@ -105,11 +114,10 @@ class CloudBackend(BackendAbstract):
                 #Załączniki dodane, ale nie wysłane do Cloud
                 self.model.insertRows( [['-1', '-1']] * len(cloud_ids), max_length=self.parent.field().length())
         else:
-            self.model.insertRows([[cid, '-1'] for cid in cloud_ids], max_length=self.parent.field().length())
+            self.model.insertRows([[cid, translate_('Załącznik niedostępny')] for cid in cloud_ids], max_length=self.parent.field().length())
 
     def addAttachment(self):
         """Dodaje załącznik"""
-        # self.checkBufferApiData()
         self.parent.widget.setFocus()
         files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
         
@@ -143,9 +151,8 @@ class CloudBackend(BackendAbstract):
 
     def fileAction(self, index, option):
         """Zapisuje plik do katalogu tymczasowego lub wskazanego przez użytkownika"""
-        if not self.api_token:
-            self.getApiToken()
-        if self.api_token:
+        token = self.getApiToken()
+        if token:
             item = self.model.data(index, Qt.UserRole)
             if item.cloud_id == '-1':
                 self.parent.bar.pushWarning(
@@ -153,7 +160,7 @@ class CloudBackend(BackendAbstract):
                     translate_('Plik zapisać można po załadowaniu go do Cloud. Nastąpi to po zakończeniu lub zapisaniu edycji.')
                 )
                 return
-            file_name, file_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], [item.cloud_id], self.api_token)
+            file_name, file_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], [item.cloud_id], token)
             if file_name is None or file_data is None:
                 return
             save_dir = ''
@@ -175,9 +182,8 @@ class CloudBackend(BackendAbstract):
                     )
 
     def downloadAll(self):
-        if not self.api_token:
-            self.getApiToken()
-        if self.api_token:
+        token = self.getApiToken()
+        if token:
             ids = []
             for row in range(0, self.model.rowCount()):
                 index = self.model.index(row, 0, self.parent.widget.tblAttachments.rootIndex())
@@ -192,9 +198,9 @@ class CloudBackend(BackendAbstract):
             if len(ids) > 1:
                 file_name = f'{self.parent.layer().name()}_{self.getFeature().id()}.zip'
                 path, _ = QFileDialog.getSaveFileName(directory=file_name)
-                attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
+                attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, token)
             elif ids:
-                file_name, attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, self.api_token)
+                file_name, attachments_data = CloudDriver.fetchAttachments(self.parent.config()['api_url'], ids, token)
                 path, _ = QFileDialog.getSaveFileName(directory=file_name)
             else:
                 self.parent.bar.pushWarning(
@@ -205,13 +211,15 @@ class CloudBackend(BackendAbstract):
             if path:
                 saveFile(path, attachments_data)
                 iface.messageBar().pushSuccess(translate_('Sukces'), 'Pomyślnie zapisano załączniki')
-    """
+
     #Ustawienia
     @staticmethod
     def isSupported(layer):
-        #Tymczasowe sprawdzanie czy warstwa pochodzi z Cloud
-        return True if 'cloud' in layer.dataProvider().dataSourceUri().lower() else False
-    """
+        if layer.providerType() == 'postgres':
+            for field in layer.fields():
+                if field.name() == '__attachments':
+                    return True
+        return False
 
 #Stworzenie instancji bufora edycyjnego załączników
 buffer = CloudBuffer(CloudBackend.SEPARATOR)

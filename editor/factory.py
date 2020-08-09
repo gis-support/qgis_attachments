@@ -19,4 +19,8 @@ class AttachmentControlWidget(QgsEditorWidgetFactory):
     
     def fieldScore(self, vl, fieldIdx):
         """ Wspierane są tylko pola tekstowe """
-        return 5 if vl.fields().field(fieldIdx).type()==QVariant.String else 0
+        field = vl.fields().field(fieldIdx)
+        if vl.providerType() == 'postgres':
+            return 5 if field.type()==QVariant.String and field.name()=='__attachments' else 0
+        else:
+            return 0
