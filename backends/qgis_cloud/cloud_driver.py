@@ -73,7 +73,7 @@ class CloudDriver:
     def deleteAttachments(cls, route, token, attachments_ids):
         ids = ','.join(attachments_ids)
         response_data = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}?ids={ids}&', method='delete', token=token)
-        return None if 'invalid token' in response_data else response_data
+        return None if 'invalid token' in response_data.readAll().data().decode() else response_data
 
     @staticmethod
     def _sendRequest(route, method='get', data=None, token=None, get_token=False):
