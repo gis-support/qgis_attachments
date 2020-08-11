@@ -177,6 +177,7 @@ class CloudBackend(BackendAbstract):
     def fileAction(self, index, option):
         """Zapisuje plik do katalogu tymczasowego lub wskazanego przez użytkownika"""
         if self.isTokenValid():
+            token = self.getApiToken()
             item = self.model.data(index, Qt.UserRole)
             if item.cloud_id == '-1':
                 self.parent.bar.pushWarning(
@@ -208,6 +209,7 @@ class CloudBackend(BackendAbstract):
     def downloadAll(self):
         """Pobiera załącznik lub załączniki spakowane w archiwum dla danego obiektu"""
         if self.isTokenValid():
+            token = self.getApiToken()
             ids = []
             for row in range(0, self.model.rowCount()):
                 index = self.model.index(row, 0, self.parent.widget.tblAttachments.rootIndex())
