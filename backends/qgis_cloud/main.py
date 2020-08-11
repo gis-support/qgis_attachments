@@ -60,6 +60,8 @@ class CloudBackend(BackendAbstract):
         if url:
             data.update({'api_url': url if url.endswith('/') else url + '/'})
         buffer.config = data
+        #Odświeżenie tokena w przypadku zmiany danych logowania
+        self.getApiToken(data=data, refresh=True, show_message=False)
         return data
 
     def setConfig(self, config):
@@ -69,10 +71,11 @@ class CloudBackend(BackendAbstract):
         self.configWidget.lnPassword.setText(config.get('password'))
         buffer.config = self.parent.config()
 
-    def getApiToken(self, config_type='parent', data={}, refresh=False):
+    def getApiToken(self, data={}, refresh=False, show_message=True):
         """Pobiera token z Cloud i zapisuje informacje o danych połączenia"""
-        config = self.parent.config() if config_type == 'parent' else data
+        config = self.parent.config() if not data else data
         token = QSettings().value(f'{config.get("api_url")}_token', None)
+
         if not token or refresh:
             auth_output = CloudDriver.authenticate(config)
             if not buffer.config:
@@ -80,9 +83,27 @@ class CloudBackend(BackendAbstract):
             if 'error' not in auth_output:
                 QSettings().setValue(f'{config.get("api_url")}_token', auth_output)
             else:
-                iface.messageBar().pushCritical(translate_('Błąd'), auth_output['error'])
+                if show_message:
+                    iface.messageBar().pushCritical(translate_('Błąd'), auth_output['error'])
+                QSettings().setValue(f'{config.get("api_url")}_token', None)
                 return None
+
         return QSettings().value(f'{config.get("api_url")}_token', None)
+
+    def isTokenValid(self):
+        """Sprawdza ważność tokena poprzez zapytanie do API"""
+        config = self.parent.config()
+        token = self.getApiToken()
+        if CloudDriver.checkToken(config, token):
+            return True
+        else:
+            token = self.getApiToken(refresh=True)
+
+        if CloudDriver.checkToken(config, token):
+            return True
+        else:
+            self.parent.bar.pushCritical(translate_('Błąd'), translate_('Podczas próby odświeżenia tokena Cloud wystąpił błąd. Sprawdź poprawność danych połączenia'))   
+            return False
 
     #Formularz
     def setValue(self, value):
@@ -112,47 +133,50 @@ class CloudBackend(BackendAbstract):
                 self.model.insertRows( items, max_length=self.parent.field().length())
             else:
                 #Załączniki dodane, ale nie wysłane do Cloud
-                self.model.insertRows( [['-1', '-1']] * len(cloud_ids), max_length=self.parent.field().length())
+                self.model.insertRows( [[cloud_id, translate_('Załącznik niedostępny')] for cloud_id in cloud_ids], max_length=self.parent.field().length())
         else:
             self.model.insertRows([[cid, translate_('Załącznik niedostępny')] for cid in cloud_ids], max_length=self.parent.field().length())
 
     def addAttachment(self):
         """Dodaje załącznik"""
-        self.parent.widget.setFocus()
-        files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
-        
-        feature = self.getFeature()
-        #Nowy załącznik, niezapisane załączniki mają id -1
-        items = [ ['-1', f] for f in files ]
-        buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].extend( items )
-        result = self.model.insertRows( items, max_length=self.parent.field().length())
+        if self.isTokenValid():
+            self.parent.widget.setFocus()
+            files, _ = QFileDialog.getOpenFileNames(self.parent.widget, 'Wybierz załączniki')
 
-        return result
+            feature = self.getFeature()
+            #Nowy załącznik, niezapisane załączniki mają id -1
+            items = [ ['-1', f] for f in files ]
+            buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].extend( items )
+            result = self.model.insertRows( items, max_length=self.parent.field().length())
+
+            return result
 
     def deleteAttachment(self):
         """Usuwa załącznik"""
-        selected = self.parent.widget.tblAttachments.selectedIndexes()
-        if len(selected) < 1:
-            return
-        index = selected[0]
-        item = self.model.data(index, Qt.UserRole)
-        item.to_delete = True
-        self.parent.widget.tblAttachments.model().dataChanged.emit( index, index )
-        cloud_id = item.cloud_id
-        self.model.removeRow(index.row())
-        feature = self.getFeature()
-        buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( cloud_id )
-        added = buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()]
-        #Sprawdzenie czy usunięty załącznik nie znajduje się na liście dodawanych załączników
-        item_to_delete = [cloud_id, item.value]
-        if item_to_delete in added:
-            added.pop(added.index(item_to_delete))
-        return True
+        #Pobranie i ewentulane odświeżenie tokena
+        if self.isTokenValid():
+            selected = self.parent.widget.tblAttachments.selectedIndexes()
+            index = selected[0]
+            if len(selected) < 1:
+                return
+            index = selected[0]
+            item = self.model.data(index, Qt.UserRole)
+            item.to_delete = True
+            self.parent.widget.tblAttachments.model().dataChanged.emit( index, index )
+            cloud_id = item.cloud_id
+            self.model.removeRow(index.row())
+            feature = self.getFeature()
+            buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( cloud_id )
+            added = buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()]
+            #Sprawdzenie czy usunięty załącznik nie znajduje się na liście dodawanych załączników
+            item_to_delete = [cloud_id, item.value]
+            if item_to_delete in added:
+                added.pop(added.index(item_to_delete))
+            return True
 
     def fileAction(self, index, option):
         """Zapisuje plik do katalogu tymczasowego lub wskazanego przez użytkownika"""
-        token = self.getApiToken()
-        if token:
+        if self.isTokenValid():
             item = self.model.data(index, Qt.UserRole)
             if item.cloud_id == '-1':
                 self.parent.bar.pushWarning(
@@ -182,8 +206,8 @@ class CloudBackend(BackendAbstract):
                     )
 
     def downloadAll(self):
-        token = self.getApiToken()
-        if token:
+        """Pobiera załącznik lub załączniki spakowane w archiwum dla danego obiektu"""
+        if self.isTokenValid():
             ids = []
             for row in range(0, self.model.rowCount()):
                 index = self.model.index(row, 0, self.parent.widget.tblAttachments.rootIndex())

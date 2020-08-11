@@ -14,14 +14,6 @@
     </message>
 </context>
 <context encoding="UTF-8">
-    <name>FieldFormatter</name>
-    <message encoding="UTF-8">
-        <location filename="../backends/fieldFormatter.py" line="15"/>
-        <source>Brak załączników</source>
-        <translation>No attachments</translation>
-    </message>
-</context>
-<context encoding="UTF-8">
     <name>FilesBackend</name>
     <message encoding="UTF-8">
         <location filename="../backends/files/main.py" line="35"/>
@@ -106,6 +98,21 @@
         <source>w odniesieniu do domyślnej ścieżki:</source>
         <translation>default path related</translation>
     </message>
+    <message encoding="UTF-8">
+        <location filename="../editor/widget.ui" line="54"/>
+        <source>Pobierz paczkę z załącznikami</source>
+        <translation>Download package with attachments</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/config.ui" line="34"/>
+        <source>Adres Cloud:</source>
+        <translation>Cloud address:</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/config.ui" line="72"/>
+        <source>Hasło:</source>
+        <translation>Password:</translation>
+    </message>
 </context>
 <context encoding="UTF-8">
     <name>LayersBackend</name>
@@ -166,6 +173,85 @@
         <location filename="../editor/widget.py" line="104"/>
         <source>Nie wybrano obiektów do usunięcia</source>
         <translation>Deleting failed. No objects selected.</translation>
+    </message>
+</context>
+<context encoding="UTF-8">
+    <name>CloudBackend</name>
+    <message>
+        <location filename="../backends/qgis_cloud/main.py" line="37"/>
+        <source>Opcje</source>
+        <translation>Options</translation>
+    </message>
+    <message>
+        <location filename="../backends/qgis_cloud/main.py" line="37"/>
+        <source>Pliki</source>
+        <translation>Files</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="168"/>
+        <source>Błąd</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../backends/qgis_cloud/main.py" line="224"/>
+        <source>Uwaga</source>
+        <translation>Warning</translation>
+    </message>
+    <message>
+        <location filename="../backends/qgis_cloud/main.py" line="231"/>
+        <source>Sukces</source>
+        <translation>Success</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="195"/>
+        <source>Pomyślnie wyeksportowano plik</source>
+        <translation>File exported successfully</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="117"/>
+        <source>Załącznik niedostępny</source>
+        <translation>Attachment unavaliable</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="168"/>
+        <source>Podczas próby odświeżenia tokena Cloud wystąpił błąd. Sprawdź poprawność danych połączenia</source>
+        <translation>An error occured while refreshing Cloud token. Check if connection details are correct</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="176"/>
+        <source>Plik zapisać można po załadowaniu go do Cloud. Nastąpi to po zakończeniu lub zapisaniu edycji.</source>
+        <translation>Attachment can be saved only after editing is finished.</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="210"/>
+        <source>Paczkę z załącznikami można zapisać po ich załadowaniu do Cloud. Nastąpi to po zakończeniu lub zapisaniu edycji.</source>
+        <translation>Attachments package can be downloaded after uploading to Cloud. This will happen after editing is finished.</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/main.py" line="224"/>
+        <source>Brak załączników do pobrania</source>
+        <translation>No attachments to download</translation>
+    </message>
+</context>
+<context>
+    <name>CloudDriver</name>
+    <message encoding="UTF-8">
+        <location filename="../backends/qgis_cloud/cloud_driver.py" line="26"/>
+        <source>Podczas autentykacji wystąpił błąd</source>
+        <translation>An error occured while authenticating</translation>
+    </message>
+    <message>
+        <location filename="../backends/qgis_cloud/cloud_driver.py" line="30"/>
+        <source>Niepoprawne dane logowania</source>
+        <translation>Incorrect login data</translation>
+    </message>
+</context>
+<context encoding="UTF-8">
+    <name>FieldFormatter</name>
+    <message encoding="UTF-8">
+        <location filename="../editor/fieldFormatter.py" line="16"/>
+        <source>Brak załączników</source>
+        <translation>No attachments</translation>
     </message>
 </context>
 </TS>

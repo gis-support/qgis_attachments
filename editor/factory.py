@@ -23,4 +23,4 @@ class AttachmentControlWidget(QgsEditorWidgetFactory):
         if vl.providerType() == 'postgres':
             return 5 if field.type()==QVariant.String and field.name()=='__attachments' else 0
         else:
-            return 0
+            return 5 if field.type()==QVariant.String else 0

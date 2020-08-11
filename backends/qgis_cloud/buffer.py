@@ -21,7 +21,6 @@ class CloudBuffer(QObject):
     def __init__(self, separator):
         super(CloudBuffer, self).__init__()
         self.SEPARATOR = separator
-        self.backend = None
         self.config = {}
         QgsProject.instance().layerWasAdded[QgsMapLayer].connect(self.registerLayer)
 
@@ -83,60 +82,49 @@ class CloudBuffer(QObject):
 
     def beforeCommitChanges(self):
         """ Zapis załączników """
-        token = self.backend.getApiToken(config_type='buffer', data=self.config)
-        if token:
-            layer = self.sender()
-            to_add_fields = self.added[layer.id()]
-            to_delete_fields = self.deleted[layer.id()]
-            fields = set(to_add_fields.keys())
-            fields.update( to_delete_fields.keys() )
-            deleted = []
-            for field_id in fields:
-                to_delete = to_delete_fields[field_id]
-                to_add = to_add_fields[field_id]
-                for fid, feature in self.getFeatures(layer, field_id).items():
-                    #Dodawane załączniki
-                    try:
-                        added = to_add.pop(fid)
-                    except:
-                        continue
-                    files = [ f[1] for f in added ]
-                    uploaded = CloudDriver.uploadAttachments(self.config['api_url'], token, files)
-                    if uploaded is None:
-                        #Token wygasł
-                        token = self.backend.getApiToken(config_type='buffer', data=self.config, refresh=True)
-                        uploaded = CloudDriver.uploadAttachments(self.config['api_url'], token, files)
-                    files_indexes = [ str(fid) for fid in uploaded ]
-                    #Usuwanie załączniki
-                    deleted.extend( to_delete.pop(feature.id(), []) )
-                    if feature[field_id]:
-                        #Aktualne wartości z pominięciem dodanych i usuniętych załączników
-                        current_values = [ v for v in feature[field_id].split(self.SEPARATOR) if v!='-1' and v not in deleted ]
-                    else:
-                        # NULL
-                        current_values = []
-                    #Scalenie niezmienionych załączników i dodanych
-                    values = self.SEPARATOR.join( chain(current_values, files_indexes) ) or NULL
-                    #Zapisanie zmian w obiekcie
-                    layer.changeAttributeValue(feature.id(), field_id, values)
-                if to_delete and not deleted:
-                    #Jeśli usuwany jest obiekt warstwy
-                    for indexes in to_delete.values():
-                        deleted.extend(indexes)
-                #Czyszczenie ewentualnych pozostałości w buforze
-                self.clearLayer( layer.id(), field_id )
-            #Przeładowanie danych warstwy
-            layer.reload()
-            if not deleted:
-                return
-            #Skasowanie usuniętych załączników z bazy
-            deleted_attachments = CloudDriver.deleteAttachments(self.config['api_url'], token, list(set(deleted)))
-            if deleted_attachments is None:
-                #Token wygasł
-                token = self.backend.getApiToken(config_type='buffer', data=self.config, refresh=True)
-                CloudDriver.deleteAttachments(self.config['api_url'], token, list(set(deleted)))
-        else:
+        layer = self.sender()
+        to_add_fields = self.added[layer.id()]
+        to_delete_fields = self.deleted[layer.id()]
+        fields = set(to_add_fields.keys())
+        fields.update( to_delete_fields.keys() )
+        deleted = []
+        token = self.backend.getApiToken(data=self.config)
+        for field_id in fields:
+            to_delete = to_delete_fields[field_id]
+            to_add = to_add_fields[field_id]
+            for fid, feature in self.getFeatures(layer, field_id).items():
+                #Dodawane załączniki
+                try:
+                    added = to_add.pop(fid)
+                except:
+                    continue
+                files = [ f[1] for f in added ]
+                uploaded = CloudDriver.uploadAttachments(self.config['api_url'], token, files)
+                files_indexes = [ str(fid) for fid in uploaded ]
+                #Usuwanie załączniki
+                deleted.extend( to_delete.pop(feature.id(), []) )
+                if feature[field_id]:
+                    #Aktualne wartości z pominięciem dodanych i usuniętych załączników
+                    current_values = [ v for v in feature[field_id].split(self.SEPARATOR) if v!='-1' and v not in deleted ]
+                else:
+                    # NULL
+                    current_values = []
+                #Scalenie niezmienionych załączników i dodanych
+                values = self.SEPARATOR.join( chain(current_values, files_indexes) ) or NULL
+                #Zapisanie zmian w obiekcie
+                layer.changeAttributeValue(feature.id(), field_id, values)
+            if to_delete and not deleted:
+                #Jeśli usuwany jest obiekt warstwy
+                for indexes in to_delete.values():
+                    deleted.extend(indexes)
+            #Czyszczenie ewentualnych pozostałości w buforze
+            self.clearLayer( layer.id(), field_id )
+        #Przeładowanie danych warstwy
+        layer.reload()
+        if not deleted:
             return
+        #Skasowanie usuniętych załączników z bazy
+        CloudDriver.deleteAttachments(self.config['api_url'], token, list(set(deleted)))
 
     def afterRollBack(self):
         """ Koniec edycji bez zapisanych zmian """

@@ -5,11 +5,15 @@ from base64 import b64encode
 from pathlib import Path
 from io import BytesIO
 import json
+from qgis_attachments.translator import translate
+
+translate_ = lambda msg: translate('CloudDriver', msg)
 
 class CloudDriver:
 
     ATTACHMENTS_ROUTE = '/api/attachments_qgis'
     LOGIN_ROUTE = '/api/login'
+    CHECK_TOKEN_ROUTE = '/api/check_token'
 
     @classmethod
     def authenticate(cls, api_data):
@@ -19,11 +23,24 @@ class CloudDriver:
         try:
             response_data = json.loads(response.readAll().data().decode())
         except:
-            return {'error': 'Podczas autentykacji wystąpił błąd'}
+            return {'error': translate_('Podczas autentykacji wystąpił błąd')}
         if 'token' in response_data:
             return response_data['token']
         else:
-            return {'error': 'Niepoprawne dane logowania'}
+            return {'error': translate_('Niepoprawne dane logowania')}
+
+    @classmethod
+    def checkToken(cls, api_data, token):
+        url = api_data.get('api_url', '')
+        response = cls._sendRequest(url + cls.CHECK_TOKEN_ROUTE, token=token)
+        try:
+            response_data = json.loads(response.readAll().data().decode())
+        except:
+            return False
+        if response_data.get('token'):
+            return True
+        else:
+            return False
 
     @classmethod
     def fetchAttachmentsMetadata(cls, route, ids, token, name_only=False):
@@ -62,18 +79,14 @@ class CloudDriver:
             })
 
         response = cls._sendRequest(route + cls.ATTACHMENTS_ROUTE, method='post', data=json.dumps(request_data), token=token)
-        response_decoded = response.readAll().data().decode()
-        if 'invalid token' in response_decoded:
-            return None
-        response_data = json.loads(response_decoded)['data']
+        response_data = json.loads(response.readAll().data().decode())['data']
         ids = [added['attachment_id'] for added in response_data]
         return ids
 
     @classmethod
     def deleteAttachments(cls, route, token, attachments_ids):
         ids = ','.join(attachments_ids)
-        response_data = cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}?ids={ids}&', method='delete', token=token)
-        return None if 'invalid token' in response_data.readAll().data().decode() else response_data
+        return cls._sendRequest(route + f'{cls.ATTACHMENTS_ROUTE}?ids={ids}&', method='delete', token=token)
 
     @staticmethod
     def _sendRequest(route, method='get', data=None, token=None, get_token=False):
@@ -99,4 +112,3 @@ class CloudDriver:
         response.finished.connect(loop.exit)
         loop.exec_()
         return response
-
