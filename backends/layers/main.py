@@ -102,6 +102,11 @@ class LayersBackend(BackendAbstract):
 
         feature = self.getFeature()
         buffer.deleted[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()].append( value_to_delete )
+        added = buffer.added[self.parent.layer().id()][self.parent.fieldIdx()][feature.id()]
+        #Sprawdzenie czy usunięty załącznik nie znajduje się na liście dodawanych załączników
+        item_to_delete = [value_to_delete, item.value]
+        if item_to_delete in added:
+            added.pop(added.index(item_to_delete))
         return True
 
     def fileAction(self, index, option):
